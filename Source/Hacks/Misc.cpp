@@ -405,7 +405,7 @@ void Misc::watermark(const Memory& memory) noexcept
     static auto frameRate = 1.0f;
     frameRate = 0.9f * frameRate + 0.1f * memory.globalVars->absoluteFrameTime;
 
-    ImGui::Text("Osiris | %d fps | %d ms", frameRate != 0.0f ? static_cast<int>(1 / frameRate) : 0, GameData::getNetOutgoingLatency());
+    ImGui::Text("Osiris-CHS | %d fps | %d ms", frameRate != 0.0f ? static_cast<int>(1 / frameRate) : 0, GameData::getNetOutgoingLatency());
     ImGui::End();
 }
 
@@ -1310,15 +1310,15 @@ void Misc::menuBarItem() noexcept
     }
 }
 
-void Misc::tabItem(const Engine& engine, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept
+void Misc::tabItem(Glow& glow, const Engine& engine, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept
 {
     if (ImGui::BeginTabItem("其他")) {
-        drawGUI(engine, clientInterfaces, interfaces, memory, true);
+        drawGUI(glow, engine, clientInterfaces, interfaces, memory, true);
         ImGui::EndTabItem();
     }
 }
 
-void Misc::drawGUI(const Engine& engine, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, bool contentOnly) noexcept
+void Misc::drawGUI(Glow& glow, const Engine& engine, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, bool contentOnly) noexcept
 {
     if (!contentOnly) {
         if (!windowOpen)
@@ -1519,9 +1519,9 @@ void Misc::drawGUI(const Engine& engine, const ClientInterfaces& clientInterface
     ImGui::PopID();
 
     if (ImGui::Button("关闭 Osiris"))
-        hooks->uninstall(clientInterfaces, interfaces, memory);
+        hooks->uninstall(glow, clientInterfaces, interfaces, memory);
 
-    ImGui::Text("由 NKXingXh 汉化");
+    ImGui::Text("Osiris-CHS 由 NKXingXh 汉化");
 
     ImGui::Columns(1);
     if (!contentOnly)

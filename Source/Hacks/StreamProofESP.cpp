@@ -369,7 +369,7 @@ static void renderWeaponBox(const Memory& memory, const Config& configGlobal, co
     }
 }
 
-static void renderEntityBox(const Memory& memory, const Config& configGlobal, const BaseData& entityData, const char* name, const Shared& config) noexcept
+static void renderEntityBox(const Memory& memory, const Config& configGlobal, const BaseData& entityData, const char* name, const char* nameCHS, const Shared& config) noexcept
 {
     const BoundingBox bbox{ entityData, config.box.scale };
 
@@ -382,7 +382,7 @@ static void renderEntityBox(const Memory& memory, const Config& configGlobal, co
     FontPush font{ configGlobal, config.font.name, entityData.distanceToLocal };
 
     if (config.name.enabled)
-        renderText(memory, entityData.distanceToLocal, config.textCullDistance, config.name.asColor4(), name, { (bbox.min.x + bbox.max.x) / 2, bbox.min.y - 5 });
+        renderText(memory, entityData.distanceToLocal, config.textCullDistance, config.name.asColor4(), nameCHS, { (bbox.min.x + bbox.max.x) / 2, bbox.min.y - 5 });
 }
 
 static void drawProjectileTrajectory(const Memory& memory, const Trail& config, const std::vector<std::pair<float, Vector>>& trajectory) noexcept
@@ -475,22 +475,22 @@ static void renderWeaponEsp(const Memory& memory, Config& configGlobal, const We
     }
 }
 
-static void renderEntityEsp(const Memory& memory, const Config& configGlobal, const BaseData& entityData, const std::unordered_map<std::string, Shared>& map, const char* name) noexcept
+static void renderEntityEsp(const Memory& memory, const Config& configGlobal, const BaseData& entityData, const std::unordered_map<std::string, Shared>& map, const char* name, const char* nameCHS) noexcept
 {
     if (const auto cfg = map.find(name); cfg != map.cend() && cfg->second.enabled) {
-        renderEntityBox(memory, configGlobal, entityData, name, cfg->second);
+        renderEntityBox(memory, configGlobal, entityData, name, nameCHS, cfg->second);
     } else if (const auto cfg = map.find("All"); cfg != map.cend() && cfg->second.enabled) {
-        renderEntityBox(memory, configGlobal ,entityData, name, cfg->second);
+        renderEntityBox(memory, configGlobal ,entityData, name, nameCHS, cfg->second);
     }
 }
 
-static void renderProjectileEsp(const Memory& memory, const Config& configGlobal, const ProjectileData& projectileData, const Projectile& parentConfig, const Projectile& itemConfig, const char* name) noexcept
+static void renderProjectileEsp(const Memory& memory, const Config& configGlobal, const ProjectileData& projectileData, const Projectile& parentConfig, const Projectile& itemConfig, const char* name, const char* nameCHS) noexcept
 {
     const auto& config = itemConfig.enabled ? itemConfig : parentConfig;
 
     if (config.enabled) {
         if (!projectileData.exploded)
-            renderEntityBox(memory, configGlobal, projectileData, name, config);
+            renderEntityBox(memory, configGlobal, projectileData, name, nameCHS, config);
 
         if (config.trails.enabled) {
             if (projectileData.thrownByLocalPlayer)
@@ -520,15 +520,15 @@ void StreamProofESP::render(const Memory& memory, Config& config) noexcept
         renderWeaponEsp(memory, config, weapon, config.streamProofESP.weapons[weapon.group], config.streamProofESP.weapons[weapon.name]);
 
     for (const auto& entity : GameData::entities())
-        renderEntityEsp(memory, config, entity, config.streamProofESP.otherEntities, entity.name);
+        renderEntityEsp(memory, config, entity, config.streamProofESP.otherEntities, entity.name, entity.nameCHS);
 
     for (const auto& lootCrate : GameData::lootCrates()) {
         if (lootCrate.name)
-            renderEntityEsp(memory, config, lootCrate, config.streamProofESP.lootCrates, lootCrate.name);
+            renderEntityEsp(memory, config, lootCrate, config.streamProofESP.lootCrates, lootCrate.name, lootCrate.name);
     }
 
     for (const auto& projectile : GameData::projectiles())
-        renderProjectileEsp(memory, config, projectile, config.streamProofESP.projectiles["All"], config.streamProofESP.projectiles[projectile.name], projectile.name);
+        renderProjectileEsp(memory, config, projectile, config.streamProofESP.projectiles["All"], config.streamProofESP.projectiles[projectile.name], projectile.name, projectile.nameCHS);
 
     for (const auto& player : GameData::players()) {
         if ((player.dormant && player.fadingAlpha(memory) == 0.0f) || !player.alive || !player.inViewFrustum)
@@ -671,11 +671,22 @@ void StreamProofESP::drawGUI(Config& config, bool contentOnly) noexcept
             const auto items = [](std::size_t category) noexcept -> std::vector<const char*> {
                 switch (category) {
                 case 0:
+                case 1: return { "Visible", "Occluded" };
+                case 2: return { "Pistols", "SMGs", "Rifles", "Sniper Rifles", "Shotguns", "Machineguns", "Grenades", "Melee", "Other" };
+                case 3: return { "Flashbang", "HE Grenade", "Breach Charge", "Bump Mine", "Decoy Grenade", "Molotov", "TA Grenade", "Smoke Grenade", "Snowball" };
+                case 4: return { "Pistol Case", "Light Case", "Heavy Case", "Explosive Case", "Tools Case", "Cash Dufflebag" };
+                case 5: return { "Defuse Kit", "Chicken", "Planted C4", "Hostage", "Sentry", "Cash", "Ammo Box", "Radar Jammer", "Snowball Pile", "Collectable Coin" };
+                default: return { };
+                }
+            }(i);
+            const auto itemsCHS = [](std::size_t category) noexcept -> std::vector<const char*> {
+                switch (category) {
+                case 0:
                 case 1: return { "可见的", "遮挡的" };
-                case 2: return { "手枪", "冲锋枪", "步枪", "狙击枪", "霰弹枪", "机枪", "投掷物", "Melee", "Other" };
+                case 2: return { "手枪", "冲锋枪", "步枪", "狙击枪", "霰弹枪", "机枪", "投掷物", "Melee", "其他" };
                 case 3: return { "闪光弹", "手雷", "Breach Charge", "Bump Mine", "诱饵弹", "燃烧瓶", "TA Grenade", "烟雾弹", "雪球" };
                 case 4: return { "Pistol Case", "Light Case", "Heavy Case", "Explosive Case", "Tools Case", "Cash Dufflebag" };
-                case 5: return { "拆弹工具", "鸡", "已安放C4", "人质", "Sentry", "Cash", "Ammo Box", "Radar Jammer", "Snowball Pile", "Collectable Coin" };
+                case 5: return { "拆弹工具", "只因", "已安放C4", "人质", "Sentry", "Cash", "Ammo Box", "Radar Jammer", "Snowball Pile", "Collectable Coin" };
                 default: return { };
                 }
             }(i);
@@ -685,7 +696,7 @@ void StreamProofESP::drawGUI(Config& config, bool contentOnly) noexcept
             for (std::size_t j = 0; j < items.size(); ++j) {
                 static bool selectedSubItem;
                 if (!categoryEnabled || getConfigShared(i, items[j]).enabled) {
-                    if (ImGui::Selectable(items[j], currentCategory == i && !selectedSubItem && std::string_view{ currentItem } == items[j])) {
+                    if (ImGui::Selectable(itemsCHS[j], currentCategory == i && !selectedSubItem && std::string_view{ currentItem } == items[j])) {
                         currentCategory = i;
                         currentItem = items[j];
                         selectedSubItem = false;
