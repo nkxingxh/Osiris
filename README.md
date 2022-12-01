@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/github/license/danielkrupinski/Osiris.svg?style=plastic)](LICENSE)
 [![Issues](https://img.shields.io/github/issues/danielkrupinski/Osiris.svg?style=plastic)](https://github.com/danielkrupinski/Osiris/issues)
 [![PayPal](https://img.shields.io/badge/donate-PayPal-104098.svg?style=plastic&logo=PayPal)](https://paypal.me/DanielK19)
-<br>![Windows](https://github.com/danielkrupinski/Osiris/workflows/Windows/badge.svg?branch=master&event=push)
+<br>![Windows](https://github.com/nkxingxh/Osiris/workflows/Windows/badge.svg?branch=master&event=push)
 ![Linux](https://github.com/danielkrupinski/Osiris/workflows/Linux/badge.svg?branch=master&event=push)
 
 适用于 **反恐精英: 全球攻势** 的免费、开源、跨平台的作弊软件。设计为内部作弊 - [动态链接库](https://en.wikipedia.org/wiki/Dynamic-link_library) (DLL) 可加载到游戏进程中。与 Steam 版本的游戏兼容。适用于 Windows 和 Linux 系统。
