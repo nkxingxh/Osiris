@@ -19,7 +19,7 @@
 
 #include "Platform/CallingConventions.h"
 
-class ClientMode;
+struct ClientMode;
 class ClientSharedObjectCache;
 class CSPlayerInventory;
 class EconItem;
@@ -71,7 +71,6 @@ public:
     UtlVector<PlantedC4*>* plantedC4s;
     UtlMap<short, PanoramaEventRegistration>* registeredPanoramaEvents;
 
-    std::add_pointer_t<void FASTCALL_CONV(const char*)> loadSky;
     std::add_pointer_t<void FASTCALL_CONV(const char*, const char*)> setClanTag;
     std::uintptr_t cameraThink;
     std::add_pointer_t<bool CDECL_CONV(Vector, Vector, short)> lineGoesThroughSmoke;

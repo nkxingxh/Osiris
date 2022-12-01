@@ -87,6 +87,9 @@
     <Filter Include="Config">
       <UniqueIdentifier>{571171a8-ca62-48a5-91c2-9b837e642a80}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hacks\Visuals">
+      <UniqueIdentifier>{b06cfa86-3590-4502-9bed-468e781c19cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -980,6 +983,15 @@
       <Filter>Config</Filter>
     </ClInclude>
     <ClInclude Include="Config\SaveConfigurator.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Visuals\ColorCorrection.h">
+      <Filter>Hacks\Visuals</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Visuals\SkyboxChanger.h">
+      <Filter>Hacks\Visuals</Filter>
+    </ClInclude>
+    <ClInclude Include="Config\Configurable.h">
       <Filter>Config</Filter>
     </ClInclude>
   </ItemGroup>

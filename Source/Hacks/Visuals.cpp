@@ -68,7 +68,6 @@ struct VisualsConfig {
     int farZ{ 0 };
     int flashReduction{ 0 };
     float brightness{ 0.0f };
-    int skybox{ 0 };
     ColorToggle3 world;
     ColorToggle3 sky;
     bool deagleSpinner{ false };
@@ -113,7 +112,6 @@ static void from_json(const json& j, VisualsConfig& v)
     read(j, "Far Z", v.farZ);
     read(j, "Flash reduction", v.flashReduction);
     read(j, "Brightness", v.brightness);
-    read(j, "Skybox", v.skybox);
     read<value_t::object>(j, "World", v.world);
     read<value_t::object>(j, "Sky", v.sky);
     read(j, "Deagle spinner", v.deagleSpinner);
@@ -160,7 +158,6 @@ static void to_json(json& j, VisualsConfig& o)
     WRITE("Far Z", farZ);
     WRITE("Flash reduction", flashReduction);
     WRITE("Brightness", brightness);
-    WRITE("Skybox", skybox);
     WRITE("World", world);
     WRITE("Sky", sky);
     WRITE("Deagle spinner", deagleSpinner);
@@ -535,15 +532,7 @@ bool Visuals::removeWeapons(const char* modelName) noexcept
 
 void Visuals::skybox(csgo::FrameStage stage) noexcept
 {
-    if (stage != csgo::FrameStage::RENDER_START && stage != csgo::FrameStage::RENDER_END)
-        return;
-
-    if (stage == csgo::FrameStage::RENDER_START && visualsConfig.skybox > 0 && static_cast<std::size_t>(visualsConfig.skybox) < skyboxList.size()) {
-        memory.loadSky(skyboxList[visualsConfig.skybox]);
-    } else {
-        static const auto sv_skyname = interfaces.getCvar().findVar(csgo::sv_skyname);
-        memory.loadSky(sv_skyname->string);
-    }
+    skyboxChanger.run(stage);
 }
 
 void Visuals::bulletTracer(const GameEvent& event) noexcept
@@ -759,7 +748,7 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     ImGui::SliderFloat("", &visualsConfig.brightness, 0.0f, 1.0f, "亮度: %.2f");
     ImGui::PopID();
     ImGui::PopItemWidth();
-    ImGui::Combo("Skybox", &visualsConfig.skybox, Visuals::skyboxList.data(), Visuals::skyboxList.size());
+    ImGui::Combo("Skybox", &skyboxChanger.skybox, SkyboxChanger::skyboxList.data(), SkyboxChanger::skyboxList.size());
     ImGuiCustom::colorPicker("World color", visualsConfig.world);
     ImGuiCustom::colorPicker("Sky color", visualsConfig.sky);
     ImGui::Checkbox("Deagle spinner", &visualsConfig.deagleSpinner);
@@ -795,26 +784,38 @@ void Visuals::drawGUI(bool contentOnly) noexcept
 
 json Visuals::toJson() noexcept
 {
+    // old way
     json j;
     to_json(j, visualsConfig);
     
-    SaveConfigurator colorCorrectionConfigurator;
-    colorCorrection.configure(colorCorrectionConfigurator);
-    j.emplace("Color correction", colorCorrectionConfigurator.getJson());
+    // new way
+    SaveConfigurator saveConfigurator;
+    configure(saveConfigurator);
+    if (const auto saveJson = saveConfigurator.getJson(); saveJson.is_object())
+        j.update(saveJson);
+
+    // temporary, until skyboxChanger is saved as a json object
+    SaveConfigurator skyboxChangerConfigurator;
+    skyboxChanger.configure(skyboxChangerConfigurator);
+    if (const auto skyboxJson = skyboxChangerConfigurator.getJson(); skyboxJson.is_object())
+        j.update(skyboxJson);
     return j;
 }
 
 void Visuals::fromJson(const json& j) noexcept
 {
     from_json(j, visualsConfig);
-    
-    LoadConfigurator colorCorrectionConfigurator{ j["Color correction"] };
-    colorCorrection.configure(colorCorrectionConfigurator);
+
+    LoadConfigurator configurator{ j };
+    skyboxChanger.configure(configurator);
+    configure(configurator);
 }
 
 void Visuals::resetConfig() noexcept
 {
     visualsConfig = {};
     ResetConfigurator resetConfigurator;
-    colorCorrection.configure(resetConfigurator);
+    configure(resetConfigurator);
+
+    skyboxChanger.configure(resetConfigurator);
 }
