@@ -43,22 +43,6 @@ struct BulletTracers : ColorToggle {
 };
 
 struct VisualsConfig {
-    bool disablePostProcessing{ false };
-    bool inverseRagdollGravity{ false };
-    bool noFog{ false };
-    bool no3dSky{ false };
-    bool noAimPunch{ false };
-    bool noViewPunch{ false };
-    bool noHands{ false };
-    bool noSleeves{ false };
-    bool noWeapons{ false };
-    bool noSmoke{ false };
-    bool noBlur{ false };
-    bool noScopeOverlay{ false };
-    bool noGrass{ false };
-    bool noShadows{ false };
-    bool wireframeSmoke{ false };
-    bool zoom{ false };
     KeyBindToggle zoomKey;
     bool thirdperson{ false };
     KeyBindToggle thirdpersonKey;
@@ -87,22 +71,6 @@ static void from_json(const json& j, BulletTracers& o)
 
 static void from_json(const json& j, VisualsConfig& v)
 {
-    read(j, "Disable post-processing", v.disablePostProcessing);
-    read(j, "Inverse ragdoll gravity", v.inverseRagdollGravity);
-    read(j, "No fog", v.noFog);
-    read(j, "No 3d sky", v.no3dSky);
-    read(j, "No aim punch", v.noAimPunch);
-    read(j, "No view punch", v.noViewPunch);
-    read(j, "No hands", v.noHands);
-    read(j, "No sleeves", v.noSleeves);
-    read(j, "No weapons", v.noWeapons);
-    read(j, "No smoke", v.noSmoke);
-    read(j, "No blur", v.noBlur);
-    read(j, "No scope overlay", v.noScopeOverlay);
-    read(j, "No grass", v.noGrass);
-    read(j, "No shadows", v.noShadows);
-    read(j, "Wireframe smoke", v.wireframeSmoke);
-    read(j, "Zoom", v.zoom);
     read(j, "Zoom key", v.zoomKey);
     read(j, "Thirdperson", v.thirdperson);
     read(j, "Thirdperson key", v.thirdpersonKey);
@@ -133,22 +101,6 @@ static void to_json(json& j, VisualsConfig& o)
 {
     const VisualsConfig dummy;
 
-    WRITE("Disable post-processing", disablePostProcessing);
-    WRITE("Inverse ragdoll gravity", inverseRagdollGravity);
-    WRITE("No fog", noFog);
-    WRITE("No 3d sky", no3dSky);
-    WRITE("No aim punch", noAimPunch);
-    WRITE("No view punch", noViewPunch);
-    WRITE("No hands", noHands);
-    WRITE("No sleeves", noSleeves);
-    WRITE("No weapons", noWeapons);
-    WRITE("No smoke", noSmoke);
-    WRITE("No blur", noBlur);
-    WRITE("No scope overlay", noScopeOverlay);
-    WRITE("No grass", noGrass);
-    WRITE("No shadows", noShadows);
-    WRITE("Wireframe smoke", wireframeSmoke);
-    WRITE("Zoom", zoom);
     WRITE("Zoom key", zoomKey);
     WRITE("Thirdperson", thirdperson);
     WRITE("Thirdperson key", thirdpersonKey);
@@ -177,12 +129,12 @@ bool Visuals::isThirdpersonOn() noexcept
 
 bool Visuals::isZoomOn() noexcept
 {
-    return visualsConfig.zoom;
+    return zoom;
 }
 
 bool Visuals::isSmokeWireframe() noexcept
 {
-    return visualsConfig.wireframeSmoke;
+    return wireframeSmoke;
 }
 
 bool Visuals::isDeagleSpinnerOn() noexcept
@@ -192,17 +144,12 @@ bool Visuals::isDeagleSpinnerOn() noexcept
 
 bool Visuals::shouldRemoveFog() noexcept
 {
-    return visualsConfig.noFog;
-}
-
-bool Visuals::shouldRemoveScopeOverlay() noexcept
-{
-    return visualsConfig.noScopeOverlay;
+    return noFog;
 }
 
 bool Visuals::shouldRemoveSmoke() noexcept
 {
-    return visualsConfig.noSmoke;
+    return noSmoke;
 }
 
 float Visuals::viewModelFov() noexcept
@@ -220,15 +167,10 @@ float Visuals::farZ() noexcept
     return static_cast<float>(visualsConfig.farZ);
 }
 
-void Visuals::performColorCorrection() noexcept
-{
-    colorCorrection.run(memory.clientMode);
-}
-
 void Visuals::inverseRagdollGravity() noexcept
 {
     static auto ragdollGravity = interfaces.getCvar().findVar(csgo::cl_ragdoll_gravity);
-    ConVar::from(retSpoofGadgets->client, ragdollGravity).setValue(visualsConfig.inverseRagdollGravity ? -600 : 600);
+    ConVar::from(retSpoofGadgets->client, ragdollGravity).setValue(inverseRagdollGravity_ ? -600 : 600);
 }
 
 void Visuals::colorWorld() noexcept
@@ -272,8 +214,8 @@ void Visuals::modifySmoke(csgo::FrameStage stage) noexcept
 
     for (const auto mat : smokeMaterials) {
         const auto material = Material::from(retSpoofGadgets->client, interfaces.getMaterialSystem().findMaterial(mat));
-        material.setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && visualsConfig.noSmoke);
-        material.setMaterialVarFlag(MaterialVarFlag::WIREFRAME, stage == csgo::FrameStage::RENDER_START && visualsConfig.wireframeSmoke);
+        material.setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && noSmoke);
+        material.setMaterialVarFlag(MaterialVarFlag::WIREFRAME, stage == csgo::FrameStage::RENDER_START && wireframeSmoke);
     }
 }
 
@@ -298,10 +240,10 @@ void Visuals::removeVisualRecoil(csgo::FrameStage stage) noexcept
         aimPunch = localPlayer.get().aimPunchAngle();
         viewPunch = localPlayer.get().viewPunchAngle();
 
-        if (visualsConfig.noAimPunch)
+        if (noAimPunch)
             localPlayer.get().aimPunchAngle() = Vector{ };
 
-        if (visualsConfig.noViewPunch)
+        if (noViewPunch)
             localPlayer.get().viewPunchAngle() = Vector{ };
 
     } else if (stage == csgo::FrameStage::RENDER_END) {
@@ -316,7 +258,7 @@ void Visuals::removeBlur(csgo::FrameStage stage) noexcept
         return;
 
     static auto blur = Material::from(retSpoofGadgets->client, interfaces.getMaterialSystem().findMaterial("dev/scope_bluroverlay"));
-    blur.setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && visualsConfig.noBlur);
+    blur.setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && noBlur);
 }
 
 void Visuals::updateBrightness() noexcept
@@ -343,24 +285,24 @@ void Visuals::removeGrass(csgo::FrameStage stage) noexcept
     };
 
     if (const auto grassMaterialName = getGrassMaterialName())
-        Material::from(retSpoofGadgets->client, interfaces.getMaterialSystem().findMaterial(grassMaterialName)).setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && visualsConfig.noGrass);
+        Material::from(retSpoofGadgets->client, interfaces.getMaterialSystem().findMaterial(grassMaterialName)).setMaterialVarFlag(MaterialVarFlag::NO_DRAW, stage == csgo::FrameStage::RENDER_START && noGrass);
 }
 
 void Visuals::remove3dSky() noexcept
 {
     static auto sky = interfaces.getCvar().findVar(csgo::r_3dsky);
-    ConVar::from(retSpoofGadgets->client, sky).setValue(!visualsConfig.no3dSky);
+    ConVar::from(retSpoofGadgets->client, sky).setValue(!no3dSky);
 }
 
 void Visuals::removeShadows() noexcept
 {
     static auto shadows = interfaces.getCvar().findVar(csgo::cl_csm_enabled);
-    ConVar::from(retSpoofGadgets->client, shadows).setValue(!visualsConfig.noShadows);
+    ConVar::from(retSpoofGadgets->client, shadows).setValue(!noShadows);
 }
 
 void Visuals::applyZoom(csgo::FrameStage stage) noexcept
 {
-    if (visualsConfig.zoom && localPlayer) {
+    if (zoom && localPlayer) {
         if (stage == csgo::FrameStage::RENDER_START && (localPlayer.get().fov() == 90 || localPlayer.get().fovStart() == 90)) {
             if (visualsConfig.zoomKey.isToggled()) {
                 localPlayer.get().fov() = 40;
@@ -501,10 +443,7 @@ void Visuals::hitMarker(const GameEvent* event, ImDrawList* drawList) noexcept
 
 void Visuals::disablePostProcessing(csgo::FrameStage stage) noexcept
 {
-    if (stage != csgo::FrameStage::RENDER_START && stage != csgo::FrameStage::RENDER_END)
-        return;
-
-    *disablePostProcessingPtr = stage == csgo::FrameStage::RENDER_START && visualsConfig.disablePostProcessing;
+    postProcessingDisabler.run(stage);
 }
 
 void Visuals::reduceFlashEffect() noexcept
@@ -515,17 +454,17 @@ void Visuals::reduceFlashEffect() noexcept
 
 bool Visuals::removeHands(const char* modelName) noexcept
 {
-    return visualsConfig.noHands && std::strstr(modelName, "arms") && !std::strstr(modelName, "sleeve");
+    return noHands && std::strstr(modelName, "arms") && !std::strstr(modelName, "sleeve");
 }
 
 bool Visuals::removeSleeves(const char* modelName) noexcept
 {
-    return visualsConfig.noSleeves && std::strstr(modelName, "sleeve");
+    return noSleeves && std::strstr(modelName, "sleeve");
 }
 
 bool Visuals::removeWeapons(const char* modelName) noexcept
 {
-    return visualsConfig.noWeapons && std::strstr(modelName, "models/weapons/v_")
+    return noWeapons && std::strstr(modelName, "models/weapons/v_")
         && !std::strstr(modelName, "arms") && !std::strstr(modelName, "tablet")
         && !std::strstr(modelName, "parachute") && !std::strstr(modelName, "fists");
 }
@@ -647,6 +586,19 @@ void Visuals::drawMolotovHull(ImDrawList* drawList) noexcept
     }
 }
 
+void Visuals::setDrawColorHook(std::uintptr_t hookReturnAddress, int& alpha) const noexcept
+{
+    if (noScopeOverlay && (hookReturnAddress == memory.scopeDust || hookReturnAddress == memory.scopeArc))
+        alpha = 0;
+}
+
+void Visuals::updateColorCorrectionWeightsHook() const noexcept
+{
+    colorCorrection.run(memory.clientMode);
+    if (noScopeOverlay)
+        *memory.vignette = 0.0f;
+}
+
 void Visuals::updateEventListeners(bool forceRemove) noexcept
 {
     class ImpactEventListener : public GameEventListener {
@@ -702,25 +654,25 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     }
     ImGui::Columns(2, nullptr, false);
     ImGui::SetColumnOffset(1, 280.0f);
-    ImGui::Checkbox("Disable post-processing", &visualsConfig.disablePostProcessing);
-    ImGui::Checkbox("Inverse ragdoll gravity", &visualsConfig.inverseRagdollGravity);
-    ImGui::Checkbox("禁用雾", &visualsConfig.noFog);
-    ImGui::Checkbox("禁用3D天空", &visualsConfig.no3dSky);
-    ImGui::Checkbox("No aim punch", &visualsConfig.noAimPunch);
-    ImGui::Checkbox("No view punch", &visualsConfig.noViewPunch);
-    ImGui::Checkbox("不显示手", &visualsConfig.noHands);
-    ImGui::Checkbox("没有袖子", &visualsConfig.noSleeves);
-    ImGui::Checkbox("没有武器", &visualsConfig.noWeapons);
-    ImGui::Checkbox("吸油烟机", &visualsConfig.noSmoke);
-    ImGui::Checkbox("去模糊", &visualsConfig.noBlur);
-    ImGui::Checkbox("全屏开镜", &visualsConfig.noScopeOverlay);
-    ImGui::Checkbox("没有草", &visualsConfig.noGrass);
-    ImGui::Checkbox("无阴影", &visualsConfig.noShadows);
-    ImGui::Checkbox("烟雾线框化", &visualsConfig.wireframeSmoke);
+    ImGui::Checkbox("Disable post-processing", &postProcessingDisabler.enabled);
+    ImGui::Checkbox("Inverse ragdoll gravity", &inverseRagdollGravity_);
+    ImGui::Checkbox("禁用雾", &noFog);
+    ImGui::Checkbox("禁用3D天空", &no3dSky);
+    ImGui::Checkbox("No aim punch", &noAimPunch);
+    ImGui::Checkbox("No view punch", &noViewPunch);
+    ImGui::Checkbox("不显示手", &noHands);
+    ImGui::Checkbox("没有袖子", &noSleeves);
+    ImGui::Checkbox("没有武器", &noWeapons);
+    ImGui::Checkbox("吸油烟机", &noSmoke);
+    ImGui::Checkbox("去模糊", &noBlur);
+    ImGui::Checkbox("全屏开镜", &noScopeOverlay);
+    ImGui::Checkbox("没有草", &noGrass);
+    ImGui::Checkbox("无阴影", &noShadows);
+    ImGui::Checkbox("烟雾线框化", &wireframeSmoke);
     ImGui::NextColumn();
-    ImGui::Checkbox("缩放", &visualsConfig.zoom);
+    ImGui::Checkbox("缩放", &zoom);
     ImGui::SameLine();
-    ImGui::PushID("Zoom Key");
+    ImGui::PushID("缩放键");
     ImGui::hotkey("", visualsConfig.zoomKey);
     ImGui::PopID();
     ImGui::Checkbox("第三人称", &visualsConfig.thirdperson);
