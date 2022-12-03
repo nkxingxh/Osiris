@@ -214,6 +214,7 @@
     <ClInclude Include="Hacks\Visuals.h" />
     <ClInclude Include="Hacks\Visuals\ColorCorrection.h" />
     <ClInclude Include="Hacks\Visuals\PostProcessingDisabler.h" />
+    <ClInclude Include="Hacks\Visuals\ScopeOverlayRemover.h" />
     <ClInclude Include="Hacks\Visuals\SkyboxChanger.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Helpers\PatternFinder.h" />
@@ -393,6 +394,7 @@
     <ClInclude Include="Texture.h" />
     <ClInclude Include="Utils\FlagsBuilder.h" />
     <ClInclude Include="Utils\PatternFinder.h" />
+    <ClInclude Include="Utils\ReturnAddress.h" />
     <ClInclude Include="Utils\SafeAddress.h" />
     <ClInclude Include="Utils\TypeHint.h" />
   </ItemGroup>

@@ -122,11 +122,6 @@ static void to_json(json& j, VisualsConfig& o)
     WRITE("Molotov Hull", molotovHull);
 }
 
-bool Visuals::isThirdpersonOn() noexcept
-{
-    return visualsConfig.thirdperson;
-}
-
 bool Visuals::isZoomOn() noexcept
 {
     return zoom;
@@ -586,17 +581,20 @@ void Visuals::drawMolotovHull(ImDrawList* drawList) noexcept
     }
 }
 
-void Visuals::setDrawColorHook(std::uintptr_t hookReturnAddress, int& alpha) const noexcept
+void Visuals::setDrawColorHook(ReturnAddress hookReturnAddress, int& alpha) const noexcept
 {
-    if (noScopeOverlay && (hookReturnAddress == memory.scopeDust || hookReturnAddress == memory.scopeArc))
-        alpha = 0;
+    scopeOverlayRemover.setDrawColorHook(hookReturnAddress, alpha);
 }
 
 void Visuals::updateColorCorrectionWeightsHook() const noexcept
 {
     colorCorrection.run(memory.clientMode);
-    if (noScopeOverlay)
-        *memory.vignette = 0.0f;
+    scopeOverlayRemover.updateColorCorrectionWeightsHook();
+}
+
+bool Visuals::svCheatsGetBoolHook(ReturnAddress hookReturnAddress) const noexcept
+{
+    return visualsConfig.thirdperson && hookReturnAddress == cameraThink;
 }
 
 void Visuals::updateEventListeners(bool forceRemove) noexcept
@@ -665,7 +663,7 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     ImGui::Checkbox("没有武器", &noWeapons);
     ImGui::Checkbox("吸油烟机", &noSmoke);
     ImGui::Checkbox("去模糊", &noBlur);
-    ImGui::Checkbox("全屏开镜", &noScopeOverlay);
+    ImGui::Checkbox("全屏开镜", &scopeOverlayRemover.enabled);
     ImGui::Checkbox("没有草", &noGrass);
     ImGui::Checkbox("无阴影", &noShadows);
     ImGui::Checkbox("烟雾线框化", &wireframeSmoke);

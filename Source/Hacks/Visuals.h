@@ -5,9 +5,11 @@
 #include <Interfaces/OtherInterfaces.h>
 #include <Platform/IsPlatform.h>
 #include <Config/ResetConfigurator.h>
+#include <Utils/ReturnAddress.h>
 #include "Visuals/ColorCorrection.h"
 #include "Visuals/SkyboxChanger.h"
 #include "Visuals/PostProcessingDisabler.h"
+#include "Visuals/ScopeOverlayRemover.h"
 
 namespace csgo { enum class FrameStage; }
 class GameEvent;
@@ -17,11 +19,15 @@ class EngineInterfaces;
 class Visuals {
 public:
     Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder)
-        : memory{ memory }, interfaces{ interfaces }, clientInterfaces{ clientInterfaces }, engineInterfaces{ engineInterfaces }, skyboxChanger{ createSkyboxChanger(interfaces.getCvar(), enginePatternFinder) }, postProcessingDisabler{ createPostProcessingDisabler(clientPatternFinder) }
+        : memory{ memory }, interfaces{ interfaces }, clientInterfaces{ clientInterfaces }, engineInterfaces{ engineInterfaces }, skyboxChanger{ createSkyboxChanger(interfaces.getCvar(), enginePatternFinder) }, postProcessingDisabler{ createPostProcessingDisabler(clientPatternFinder) }, scopeOverlayRemover{ createScopeOverlayRemover(clientPatternFinder) }
     {
+#if IS_WIN32()
+        cameraThink = ReturnAddress{ clientPatternFinder("\x85\xC0\x75\x30\x38\x87").get() };
+#elif IS_LINUX()
+        cameraThink = ReturnAddress{ clientPatternFinder("\xFF\x90????\x85\xC0\x75\x64").add(6).get() };
+#endif
     }
 
-    bool isThirdpersonOn() noexcept;
     bool isZoomOn() noexcept;
     bool isSmokeWireframe() noexcept;
     bool isDeagleSpinnerOn() noexcept;
@@ -54,8 +60,9 @@ public:
     void bulletTracer(const GameEvent& event) noexcept;
     void drawMolotovHull(ImDrawList* drawList) noexcept;
 
-    void setDrawColorHook(std::uintptr_t hookReturnAddress, int& alpha) const noexcept;
+    void setDrawColorHook(ReturnAddress hookReturnAddress, int& alpha) const noexcept;
     void updateColorCorrectionWeightsHook() const noexcept;
+    bool svCheatsGetBoolHook(ReturnAddress hookReturnAddress) const noexcept;
 
     void updateEventListeners(bool forceRemove = false) noexcept;
     void updateInput() noexcept;
@@ -75,6 +82,7 @@ public:
     {
         configurator("Color correction", colorCorrection);
         configurator("Post-processing Disabler", postProcessingDisabler);
+        configurator("Scope Overlay Remover", scopeOverlayRemover);
         configurator("Inverse ragdoll gravity", inverseRagdollGravity_).def(false);
         configurator("No fog", noFog).def(false);
         configurator("No 3d sky", no3dSky).def(false);
@@ -85,7 +93,6 @@ public:
         configurator("No weapons", noWeapons).def(false);
         configurator("No smoke", noSmoke).def(false);
         configurator("No blur", noBlur).def(false);
-        configurator("No scope overlay", noScopeOverlay).def(false);
         configurator("No grass", noGrass).def(false);
         configurator("No shadows", noShadows).def(false);
         configurator("Wireframe smoke", wireframeSmoke).def(false);
@@ -100,6 +107,8 @@ private:
     ColorCorrection colorCorrection;
     SkyboxChanger skyboxChanger;
     PostProcessingDisabler postProcessingDisabler;
+    ScopeOverlayRemover scopeOverlayRemover;
+    ReturnAddress cameraThink;
 
     bool inverseRagdollGravity_;
     bool noFog;
@@ -111,7 +120,6 @@ private:
     bool noWeapons;
     bool noSmoke;
     bool noBlur;
-    bool noScopeOverlay;
     bool noGrass;
     bool noShadows;
     bool wireframeSmoke;
