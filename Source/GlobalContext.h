@@ -21,6 +21,8 @@
 #include "Interfaces/EngineInterfaces.h"
 #include "SDK/CSPlayerInventory.h"
 #include "Utils/ReturnAddress.h"
+#include "InventoryChanger/InventoryChanger.h"
+#include "Hacks/Features.h"
 
 struct DemoPlaybackParameters;
 class matrix3x4;
@@ -88,7 +90,7 @@ public:
 
     std::optional<EngineInterfacesPODs> engineInterfacesPODs; // TODO: make private
 
-    std::optional<Visuals> visuals;
+    std::optional<Features> features;
 
     [[nodiscard]] EngineInterfaces getEngineInterfaces() const noexcept
     {
@@ -114,9 +116,6 @@ private:
     std::optional<Config> config;
     std::optional<ClientInterfacesPODs> clientInterfaces;
     std::optional<const OtherInterfacesPODs> interfaces;
-    std::optional<Aimbot> aimbot;
-    std::optional<Backtrack> backtrack;
-    std::optional<Glow> glow;
 };
 
 inline std::optional<GlobalContext> globalContext;
