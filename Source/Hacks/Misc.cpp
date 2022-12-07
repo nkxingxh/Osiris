@@ -1514,7 +1514,7 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::PopID();
 
     if (ImGui::Button("关闭 Osiris"))
-        hooks->uninstall(glow, engineInterfaces, clientInterfaces, interfaces, memory, visuals, inventoryChanger);
+        hooks->uninstall(*this, glow, engineInterfaces, clientInterfaces, interfaces, memory, visuals, inventoryChanger);
 
     ImGui::Text("Osiris-CHS 由 NKXingXh 汉化");
 

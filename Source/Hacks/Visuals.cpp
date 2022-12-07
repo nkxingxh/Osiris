@@ -17,20 +17,21 @@
 #include "Visuals.h"
 
 #include <SDK/PODs/ConVar.h>
-#include "../SDK/ConVar.h"
-#include "../SDK/Cvar.h"
-#include "../SDK/Engine.h"
-#include "../SDK/Entity.h"
-#include "../SDK/EntityList.h"
+#include <SDK/ConVar.h>
+#include <SDK/Cvar.h>
+#include <SDK/Engine.h>
+#include <SDK/Entity.h>
+#include <SDK/EntityList.h>
 #include <SDK/Constants/ConVarNames.h>
 #include <SDK/Constants/FrameStage.h>
-#include "../SDK/GameEvent.h"
-#include "../SDK/GlobalVars.h"
-#include "../SDK/Input.h"
-#include "../SDK/LocalPlayer.h"
-#include "../SDK/Material.h"
-#include "../SDK/MaterialSystem.h"
-#include "../SDK/ViewRenderBeams.h"
+#include <SDK/GameEvent.h>
+#include <SDK/GlobalVars.h>
+#include <SDK/Input.h>
+#include <SDK/LocalPlayer.h>
+#include <SDK/Material.h>
+#include <SDK/MaterialSystem.h>
+#include <SDK/ViewRender.h>
+#include <SDK/ViewRenderBeams.h>
 
 #include "../GlobalContext.h"
 #include <Interfaces/ClientInterfaces.h>
@@ -127,11 +128,6 @@ bool Visuals::isZoomOn() noexcept
     return zoom;
 }
 
-bool Visuals::isSmokeWireframe() noexcept
-{
-    return wireframeSmoke;
-}
-
 bool Visuals::isDeagleSpinnerOn() noexcept
 {
     return visualsConfig.deagleSpinner;
@@ -140,11 +136,6 @@ bool Visuals::isDeagleSpinnerOn() noexcept
 bool Visuals::shouldRemoveFog() noexcept
 {
     return noFog;
-}
-
-bool Visuals::shouldRemoveSmoke() noexcept
-{
-    return noSmoke;
 }
 
 float Visuals::viewModelFov() noexcept
@@ -595,6 +586,15 @@ void Visuals::updateColorCorrectionWeightsHook() const noexcept
 bool Visuals::svCheatsGetBoolHook(ReturnAddress hookReturnAddress) const noexcept
 {
     return visualsConfig.thirdperson && hookReturnAddress == cameraThink;
+}
+
+bool Visuals::renderSmokeOverlayHook() const noexcept
+{
+    if (noSmoke || wireframeSmoke) {
+        memory.viewRender->smokeOverlayAmount = 0.0f;
+        return true;
+    }
+    return false;
 }
 
 void Visuals::updateEventListeners(bool forceRemove) noexcept
