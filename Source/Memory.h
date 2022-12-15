@@ -18,7 +18,7 @@
 #include "Helpers/PatternFinder.h"
 #include "Utils/TypeHint.h"
 
-#include "Platform/CallingConventions.h"
+#include "Platform/Macros/CallingConventions.h"
 
 struct ClientMode;
 class ClientSharedObjectCache;
@@ -99,11 +99,9 @@ public:
     const wchar_t*(THISCALL_CONV* getDecoratedPlayerName)(PlayerResource* pr, int index, wchar_t* buffer, int buffsize, int flags);
     csgo::pod::Entity** gameRules;
     InventoryManager inventoryManager;
-    std::add_pointer_t<csgo::pod::EconItem* STDCALL_CONV()> createEconItemSharedObject;
     csgo::pod::PanoramaMarshallHelper* panoramaMarshallHelper;
     std::add_pointer_t<csgo::pod::EconItemView* CDECL_CONV(std::uint64_t itemID)> findOrCreateEconItemViewForItemID;
     std::uintptr_t createBaseTypeCache;
-    csgo::pod::UiComponentInventory** uiComponentInventory;
     TypeHint<std::uintptr_t, void(THISCALL_CONV*)(csgo::pod::UiComponentInventory* thisptr, std::uint64_t itemID, const char* type, const char* value)> setItemSessionPropertyValue;
 
     short makePanoramaSymbol(const char* name) const noexcept

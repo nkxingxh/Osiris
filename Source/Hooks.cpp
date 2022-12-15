@@ -4,8 +4,8 @@
 
 #include "imgui/imgui.h"
 
-#include "Platform/CallStack.h"
-#include "Platform/IsPlatform.h"
+#include "Platform/Macros/CallStack.h"
+#include "Platform/Macros/IsPlatform.h"
 
 #if IS_WIN32()
 #include <intrin.h>
@@ -208,7 +208,7 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInte
 
     Netvars::restore();
 
-    glow.clearCustomObjects(memory);
+    glow.clearCustomObjects();
     inventoryChanger.reset(interfaces, memory);
 
 #if IS_WIN32()
@@ -233,7 +233,7 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInte
 
 void Hooks::callOriginalDrawModelExecute(void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld) noexcept
 {
-    modelRender.callOriginal<void, 21>(ctx, state, std::cref(info), customBoneToWorld);
+    modelRender.callOriginal<void, 21>(ctx, state, &info, customBoneToWorld);
 }
 
 #if !IS_WIN32()

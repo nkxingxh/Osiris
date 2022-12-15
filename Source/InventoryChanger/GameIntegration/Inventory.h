@@ -8,6 +8,8 @@
 #include <InventoryChanger/EconItemFunctions.h>
 #include <InventoryChanger/EconItemViewFunctions.h>
 #include <Interfaces/OtherInterfaces.h>
+#include <RetSpoof/FunctionInvoker.h>
+#include <SDK/Functions.h>
 
 namespace csgo
 {
@@ -35,8 +37,17 @@ namespace inventory_changer::game_integration
 
 class Inventory {
 public:
-    Inventory(OtherInterfaces interfaces, const Memory& memory, const EconItemFunctions& econItemFunctions, const EconItemViewFunctions& econItemViewFunctions)
-        : interfaces{ interfaces }, memory{ memory }, econItemFunctions{ econItemFunctions }, econItemViewFunctions{ econItemViewFunctions } {}
+    Inventory(OtherInterfaces interfaces, const Memory& memory, const helpers::PatternFinder& clientPatternFinder)
+        : interfaces{ interfaces }, memory{ memory }, econItemFunctions{ createEconItemFunctions(clientPatternFinder) }, econItemViewFunctions{ createEconItemViewFunctions(clientPatternFinder) },
+#if IS_WIN32()
+        createEconItemSharedObject{ retSpoofGadgets->client, clientPatternFinder("\x55\x8B\xEC\x83\xEC\x1C\x8D\x45\xE4\xC7\x45").add(20).deref().get() },
+        uiComponentInventory{ clientPatternFinder("\xC6\x44\x24??\x83\x3D").add(7).deref().as<csgo::pod::UiComponentInventory**>() }
+#elif IS_LINUX()
+        createEconItemSharedObject{ retSpoofGadgets->client, clientPatternFinder("\x55\x48\x8D\x05????\x31\xD2\x4C\x8D\x0D").add(50).relativeToAbsolute().get() },
+        uiComponentInventory{ clientPatternFinder("\xE8????\x4C\x89\x3D????\x4C\x89\xFF\xEB\x9E").add(8).relativeToAbsolute().as<csgo::pod::UiComponentInventory**>() }
+#endif
+    {
+    }
 
     ItemId createSOCItem(const game_items::Storage& gameItemStorage, const inventory::Item& inventoryItem, bool asUnacknowledged);
     [[nodiscard]] ItemId assingNewItemID(ItemId itemID);
@@ -79,6 +90,8 @@ private:
     const Memory& memory;
     EconItemFunctions econItemFunctions;
     EconItemViewFunctions econItemViewFunctions;
+    FunctionInvoker<csgo::CreateSharedObjectSubclass<csgo::pod::EconItem>> createEconItemSharedObject;
+    csgo::pod::UiComponentInventory** uiComponentInventory;
 };
 
 }
