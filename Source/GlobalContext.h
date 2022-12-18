@@ -19,7 +19,7 @@
 #include "Hacks/Visuals.h"
 #include "Interfaces/ClientInterfaces.h"
 #include "Interfaces/EngineInterfaces.h"
-#include "SDK/CSPlayerInventory.h"
+#include "CSGO/CSPlayerInventory.h"
 #include "Utils/ReturnAddress.h"
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hacks/Features.h"
@@ -67,7 +67,7 @@ public:
     void setResultIntHook(void* params, int result, ReturnAddress returnAddress);
     unsigned getNumArgsHook(void* params, ReturnAddress returnAddress);
     void updateInventoryEquippedStateHook(std::uintptr_t inventory, csgo::ItemId itemID, csgo::Team team, int slot, bool swap);
-    void soUpdatedHook(csgo::SOID owner, csgo::pod::SharedObject* object, int event);
+    void soUpdatedHook(csgo::SOID owner, csgo::SharedObjectPOD* object, int event);
     int listLeavesInBoxHook(const csgo::Vector& mins, const csgo::Vector& maxs, unsigned short* list, int listMax, ReturnAddress returnAddress, std::uintptr_t frameAddress);
 
 #if IS_WIN32()
@@ -85,7 +85,7 @@ public:
     void viewModelSequenceNetvarHook(csgo::recvProxyData& data, void* outStruct, void* arg3);
     void spottedHook(csgo::recvProxyData& data, void* outStruct, void* arg3);
 
-    void fireGameEventCallback(csgo::pod::GameEvent* eventPointer);
+    void fireGameEventCallback(csgo::GameEventPOD* eventPointer);
 
     std::optional<EventListener> gameEventListener;
 

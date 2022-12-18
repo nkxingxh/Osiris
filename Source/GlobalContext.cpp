@@ -28,25 +28,25 @@
 #include "Hacks/StreamProofESP.h"
 #include "Hacks/Triggerbot.h"
 #include "Hacks/Visuals.h"
-#include "SDK/ClientClass.h"
-#include "SDK/Constants/ClassId.h"
-#include "SDK/Constants/FrameStage.h"
-#include "SDK/Constants/UserMessages.h"
-#include "SDK/Engine.h"
-#include "SDK/Entity.h"
-#include "SDK/EntityList.h"
-#include "SDK/GlobalVars.h"
-#include "SDK/InputSystem.h"
-#include "SDK/LocalPlayer.h"
-#include "SDK/ModelRender.h"
-#include "SDK/Recv.h"
-#include "SDK/SoundEmitter.h"
-#include "SDK/SoundInfo.h"
-#include "SDK/StudioRender.h"
-#include "SDK/Surface.h"
-#include "SDK/UserCmd.h"
-#include "SDK/ViewSetup.h"
-#include "SDK/PODs/RenderableInfo.h"
+#include "CSGO/ClientClass.h"
+#include "CSGO/Constants/ClassId.h"
+#include "CSGO/Constants/FrameStage.h"
+#include "CSGO/Constants/UserMessages.h"
+#include "CSGO/Engine.h"
+#include "CSGO/Entity.h"
+#include "CSGO/EntityList.h"
+#include "CSGO/GlobalVars.h"
+#include "CSGO/InputSystem.h"
+#include "CSGO/LocalPlayer.h"
+#include "CSGO/ModelRender.h"
+#include "CSGO/Recv.h"
+#include "CSGO/SoundEmitter.h"
+#include "CSGO/SoundInfo.h"
+#include "CSGO/StudioRender.h"
+#include "CSGO/Surface.h"
+#include "CSGO/UserCmd.h"
+#include "CSGO/ViewSetup.h"
+#include "CSGO/PODs/RenderableInfo.h"
 
 #include "Interfaces/ClientInterfaces.h"
 
@@ -362,7 +362,7 @@ void GlobalContext::updateInventoryEquippedStateHook(std::uintptr_t inventory, c
     hooks->inventoryManager.callOriginal<void, WIN32_LINUX(29, 30)>(inventory, itemID, team, slot, swap);
 }
 
-void GlobalContext::soUpdatedHook(csgo::SOID owner, csgo::pod::SharedObject* object, int event)
+void GlobalContext::soUpdatedHook(csgo::SOID owner, csgo::SharedObjectPOD* object, int event)
 {
     features->inventoryChanger.onSoUpdated(csgo::SharedObject::from(retSpoofGadgets->client, object));
     hooks->inventory.callOriginal<void, 1>(owner, object, event);
@@ -510,7 +510,7 @@ void GlobalContext::swapWindowHook(SDL_Window* window)
 
 void GlobalContext::viewModelSequenceNetvarHook(csgo::recvProxyData& data, void* outStruct, void* arg3)
 {
-    const auto viewModel = csgo::Entity::from(retSpoofGadgets->client, static_cast<csgo::pod::Entity*>(outStruct));
+    const auto viewModel = csgo::Entity::from(retSpoofGadgets->client, static_cast<csgo::EntityPOD*>(outStruct));
 
     if (localPlayer && ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getEntityList().getEntityFromHandle(viewModel.owner()) == localPlayer.get().getPOD()) {
         if (const auto weapon = csgo::Entity::from(retSpoofGadgets->client, ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getEntityList().getEntityFromHandle(viewModel.weapon())); weapon.getPOD() != nullptr) {
@@ -530,7 +530,7 @@ void GlobalContext::spottedHook(csgo::recvProxyData& data, void* outStruct, void
         data.value._int = 1;
 
         if (localPlayer) {
-            const auto entity = csgo::Entity::from(retSpoofGadgets->client, static_cast<csgo::pod::Entity*>(outStruct));
+            const auto entity = csgo::Entity::from(retSpoofGadgets->client, static_cast<csgo::EntityPOD*>(outStruct));
             if (const auto index = localPlayer.get().getNetworkable().index(); index > 0 && index <= 32)
                 entity.spottedByMask() |= 1 << (index - 1);
         }
@@ -539,7 +539,7 @@ void GlobalContext::spottedHook(csgo::recvProxyData& data, void* outStruct, void
     proxyHooks.spotted.originalProxy(data, outStruct, arg3);
 }
 
-void GlobalContext::fireGameEventCallback(csgo::pod::GameEvent* eventPointer)
+void GlobalContext::fireGameEventCallback(csgo::GameEventPOD* eventPointer)
 {
     const auto event = csgo::GameEvent::from(retSpoofGadgets->client, eventPointer);
 

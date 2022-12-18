@@ -14,35 +14,35 @@
 #include "../Memory.h"
 #include "Backtrack.h"
 #include "../InputUtil.h"
-#include <SDK/Constants/ClassId.h>
-#include "../SDK/ClientClass.h"
-#include "../SDK/Entity.h"
-#include "../SDK/EntityList.h"
-#include "../SDK/GlobalVars.h"
-#include "../SDK/LocalPlayer.h"
-#include "../SDK/Material.h"
-#include "../SDK/MaterialSystem.h"
-#include "../SDK/ModelRender.h"
-#include "../SDK/StudioRender.h"
-#include "../SDK/KeyValues.h"
-#include "../SDK/Utils.h"
+#include <CSGO/Constants/ClassId.h>
+#include <CSGO/ClientClass.h>
+#include <CSGO/Entity.h>
+#include <CSGO/EntityList.h>
+#include <CSGO/GlobalVars.h>
+#include <CSGO/LocalPlayer.h>
+#include <CSGO/Material.h>
+#include <CSGO/MaterialSystem.h>
+#include <CSGO/ModelRender.h>
+#include <CSGO/StudioRender.h>
+#include <CSGO/KeyValues.h>
+#include <CSGO/Utils.h>
 
 #include <Interfaces/ClientInterfaces.h>
 #include <Interfaces/OtherInterfaces.h>
 
-static csgo::pod::Material* normal;
-static csgo::pod::Material* flat;
-static csgo::pod::Material* animated;
-static csgo::pod::Material* platinum;
-static csgo::pod::Material* glass;
-static csgo::pod::Material* crystal;
-static csgo::pod::Material* chrome;
-static csgo::pod::Material* silver;
-static csgo::pod::Material* gold;
-static csgo::pod::Material* plastic;
-static csgo::pod::Material* glow;
-static csgo::pod::Material* pearlescent;
-static csgo::pod::Material* metallic;
+static csgo::MaterialPOD* normal;
+static csgo::MaterialPOD* flat;
+static csgo::MaterialPOD* animated;
+static csgo::MaterialPOD* platinum;
+static csgo::MaterialPOD* glass;
+static csgo::MaterialPOD* crystal;
+static csgo::MaterialPOD* chrome;
+static csgo::MaterialPOD* silver;
+static csgo::MaterialPOD* gold;
+static csgo::MaterialPOD* plastic;
+static csgo::MaterialPOD* glow;
+static csgo::MaterialPOD* pearlescent;
+static csgo::MaterialPOD* metallic;
 
 static constexpr auto dispatchMaterial_(int id) noexcept
 {

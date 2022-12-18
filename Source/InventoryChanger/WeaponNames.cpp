@@ -1,8 +1,8 @@
 #include "WeaponNames.h"
 
-#include <SDK/ItemSchema.h>
-#include <SDK/Localize.h>
-#include <SDK/PODs/ItemSchema.h>
+#include <CSGO/ItemSchema.h>
+#include <CSGO/Localize.h>
+#include <CSGO/PODs/ItemSchema.h>
 
 #include <Helpers.h>
 #include <Interfaces/OtherInterfaces.h>
@@ -10,7 +10,7 @@
 namespace inventory_changer
 {
 
-[[nodiscard]] static WeaponNames createWeaponNamesStorage(const OtherInterfaces& interfaces, const csgo::pod::ItemSchema& itemSchema)
+[[nodiscard]] static WeaponNames createWeaponNamesStorage(const OtherInterfaces& interfaces, const csgo::ItemSchemaPOD& itemSchema)
 {
     WeaponNames storage;
     ToUtf8Converter converter{ interfaces.getLocalize() };
