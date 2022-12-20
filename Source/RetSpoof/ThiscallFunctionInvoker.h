@@ -3,17 +3,18 @@
 #include <tuple>
 #include <utility>
 
+#include <Platform/Macros/CallingConventions.h>
 #include <Platform/RetSpoofInvoker.h>
 
 template <typename ReturnType, typename... Args>
-class FastcallFunctionInvoker {
+class ThiscallFunctionInvoker {
 public:
-    explicit FastcallFunctionInvoker(RetSpoofInvoker invoker, std::uintptr_t functionAddress)
+    explicit ThiscallFunctionInvoker(RetSpoofInvoker invoker, std::uintptr_t functionAddress)
         : invoker{ invoker }, functionAddress{ functionAddress }
     {
     }
 
-    explicit FastcallFunctionInvoker(RetSpoofInvoker invoker, ReturnType(FASTCALL_CONV* function)(Args...))
+    explicit ThiscallFunctionInvoker(RetSpoofInvoker invoker, ReturnType (THISCALL_CONV* function)(Args...))
         : invoker{ invoker }, functionAddress{ std::uintptr_t(function) }
     {
     }
@@ -33,14 +34,13 @@ private:
     ReturnType invoke(const Tuple& args) const noexcept
     {
         constexpr auto numberOfArgs = std::tuple_size_v<Tuple>;
-        constexpr auto numberOfRegisterArgs = std::min<std::size_t>(numberOfArgs, 2);
+        constexpr auto numberOfRegisterArgs = std::min<std::size_t>(numberOfArgs, 1);
         constexpr auto numberOfStackArgs = numberOfArgs - numberOfRegisterArgs;
 
-        return [this] <std::size_t... I> (const Tuple& tuple, std::index_sequence<I...>) {
+        return [this] <std::size_t... I> (const Tuple & tuple, std::index_sequence<I...>) {
             const auto ecx = getRegisterArgument<numberOfRegisterArgs, 0>(tuple);
-            const auto edx = getRegisterArgument<numberOfRegisterArgs, 1>(tuple);
 
-            return invoker.invokeFastcall<ReturnType>(ecx, edx, functionAddress, std::get<I + numberOfRegisterArgs>(tuple)...);
+            return invoker.invokeThiscall<ReturnType>(ecx, functionAddress, std::get<I + numberOfRegisterArgs>(tuple)...);
         }(args, std::make_index_sequence<numberOfStackArgs>{});
     }
 

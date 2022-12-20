@@ -40,13 +40,15 @@
 
 Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
 #if IS_WIN32()
-    : 
+    : lineGoesThroughSmoke{ retSpoofGadgets.client, clientPatternFinder("\xE8????\x8B\x4C\x24\x30\x33\xD2").add(1).relativeToAbsolute().get() },
       weaponSystem{ retSpoofGadgets.client, clientPatternFinder("\x8B\x35????\xFF\x10\x0F\xB7\xC0").add(2).deref().get() },
-      inventoryManager{ csgo::InventoryManager::from(retSpoofGadgets.client, clientPatternFinder("\x8D\x44\x24\x28\xB9????\x50").add(5).deref().as<csgo::InventoryManagerPOD*>()) }
+      inventoryManager{ csgo::InventoryManager::from(retSpoofGadgets.client, clientPatternFinder("\x8D\x44\x24\x28\xB9????\x50").add(5).deref().as<csgo::InventoryManagerPOD*>()) },
+      findOrCreateEconItemViewForItemID{ retSpoofGadgets.client, clientPatternFinder("\xE8????\x8B\xCE\x83\xC4\x08").add(1).relativeToAbsolute().get() }
 #else
-    : 
+    : lineGoesThroughSmoke{ retSpoofGadgets.client, clientPatternFinder("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x30\x66\x0F\xD6\x45\xD0").get() },
       weaponSystem{ retSpoofGadgets.client, clientPatternFinder("\x48\x8B\x58\x10\x48\x8B\x07\xFF\x10").add(12).relativeToAbsolute().deref().get() },
-      inventoryManager{ csgo::InventoryManager::from(retSpoofGadgets.client, clientPatternFinder("\x48\x8D\x35????\x48\x8D\x3D????\xE9????\x90\x90\x90\x55").add(3).relativeToAbsolute().as<csgo::InventoryManagerPOD*>()) }
+      inventoryManager{ csgo::InventoryManager::from(retSpoofGadgets.client, clientPatternFinder("\x48\x8D\x35????\x48\x8D\x3D????\xE9????\x90\x90\x90\x55").add(3).relativeToAbsolute().as<csgo::InventoryManagerPOD*>()) },
+      findOrCreateEconItemViewForItemID{ retSpoofGadgets.client, clientPatternFinder("\xE8????\x4C\x89\xEF\x48\x89\x45\xC8").add(1).relativeToAbsolute().get() }
 #endif
 {
 #if IS_WIN32()
@@ -58,7 +60,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     clientMode = **reinterpret_cast<csgo::ClientMode***>((*reinterpret_cast<uintptr_t**>(clientInterface))[10] + 5);
     input = *reinterpret_cast<csgo::Input**>((*reinterpret_cast<uintptr_t**>(clientInterface))[16] + 1);
     globalVars = **reinterpret_cast<csgo::GlobalVars***>((*reinterpret_cast<uintptr_t**>(clientInterface))[11] + 10);
-    lineGoesThroughSmoke = clientPatternFinder("\xE8????\x8B\x4C\x24\x30\x33\xD2").add(1).relativeToAbsolute().as<decltype(lineGoesThroughSmoke)>();
     isOtherEnemy = clientPatternFinder("\x8B\xCE\xE8????\x02\xC0").add(3).relativeToAbsolute().as<decltype(isOtherEnemy)>();
     auto temp = clientPatternFinder("\xB9????\xE8????\x8B\x5D\x08").add(1);
     hud = SafeAddress{ temp }.deref().get();
@@ -81,7 +82,7 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     keyValuesFromString = clientPatternFinder("\xE8????\x83\xC4\x04\x89\x45\xD8").add(1).relativeToAbsolute().get();
     keyValuesFindKey = clientPatternFinder("\xE8????\xF7\x45").add(1).relativeToAbsolute().as<decltype(keyValuesFindKey)>();
     keyValuesSetString = clientPatternFinder("\xE8????\x89\x77\x38").add(1).relativeToAbsolute().as<decltype(keyValuesSetString)>();
-    getEventDescriptor = enginePatternFinder("\xE8????\x8B\xD8\x85\xDB\x75\x27").add(1).relativeToAbsolute().get();
+    getEventDescriptor = enginePatternFinder("\xE8????\x8B\xD8\x85\xDB\x75\x27").add(1).relativeToAbsolute().as<csgo::GetEventDescriptor>();
     activeChannels = enginePatternFinder("\x8B\x1D????\x89\x5C\x24\x48").add(2).deref().as<csgo::ActiveChannels*>();
     channels = enginePatternFinder("\x81\xC2????\x8B\x72\x54").add(2).deref().as<csgo::Channel*>();
     playerResource = clientPatternFinder("\x74\x30\x8B\x35????\x85\xF6").add(4).deref().as<csgo::PlayerResource**>();
@@ -92,7 +93,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     makePanoramaSymbolFn = clientPatternFinder("\xE8????\x0F\xB7\x45\x0E\x8D\x4D\x0E").add(1).relativeToAbsolute().as<decltype(makePanoramaSymbolFn)>();
     panoramaMarshallHelper = clientPatternFinder("\x68????\x8B\xC8\xE8????\x8D\x4D\xF4\xFF\x15????\x8B\xCF\xFF\x15????\x5F\x5E\x8B\xE5\x5D\xC3").add(1).deref().as<decltype(panoramaMarshallHelper)>();
 
-    findOrCreateEconItemViewForItemID = clientPatternFinder("\xE8????\x8B\xCE\x83\xC4\x08").add(1).relativeToAbsolute().as<decltype(findOrCreateEconItemViewForItemID)>();
     createBaseTypeCache = clientPatternFinder("\xE8????\x8D\x4D\x0F").add(1).relativeToAbsolute().get();
     setItemSessionPropertyValue = clientPatternFinder("\xE8????\x8B\x4C\x24\x2C\x46").add(1).relativeToAbsolute().get();
 
@@ -113,7 +113,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     itemSystemFn = clientPatternFinder("\xE8????\x4D\x63\xEC").add(1).relativeToAbsolute().as<decltype(itemSystemFn)>();
 
     isOtherEnemy = clientPatternFinder("\xE8????\x84\xC0\x44\x89\xE2").add(1).relativeToAbsolute().as<decltype(isOtherEnemy)>();
-    lineGoesThroughSmoke = clientPatternFinder("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x30\x66\x0F\xD6\x45\xD0").as<decltype(lineGoesThroughSmoke)>();
     getDecoratedPlayerName = clientPatternFinder("\xE8????\x8B\x33\x4C\x89\xF7").add(1).relativeToAbsolute().as<decltype(getDecoratedPlayerName)>();
 
     hud = clientPatternFinder("\x53\x48\x8D\x3D????\x48\x83\xEC\x10\xE8").add(4).relativeToAbsolute().get();
@@ -123,7 +122,7 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     input = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[16] }.add(3).relativeToAbsolute().deref<2>().as<csgo::Input*>();
     playerResource = clientPatternFinder("\x74\x38\x48\x8B\x3D????\x89\xDE").add(5).relativeToAbsolute().as<csgo::PlayerResource**>();
 
-    getEventDescriptor = enginePatternFinder("\xE8????\x48\x85\xC0\x74\x62").add(1).relativeToAbsolute().get();
+    getEventDescriptor = enginePatternFinder("\xE8????\x48\x85\xC0\x74\x62").add(1).relativeToAbsolute().as<csgo::GetEventDescriptor>();
     activeChannels = enginePatternFinder("\x48\x8D\x3D????\x4C\x89\xE6\xE8????\x8B\xBD").add(3).relativeToAbsolute().as<csgo::ActiveChannels*>();
     channels = enginePatternFinder("\x4C\x8D\x35????\x49\x83\xC4\x04").add(3).relativeToAbsolute().as<csgo::Channel*>();
     keyValuesFromString = clientPatternFinder("\xE8????\x48\x89\xDF\x48\x89\x45\xE0").add(1).relativeToAbsolute().get();
@@ -144,7 +143,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     moveHelperPtr = clientPatternFinder("\x48\x8B\x05????\x44\x89\x85????\x48\x8B\x38").add(3).relativeToAbsolute().deref<2>().as<csgo::MoveHelperPOD*>();
 
     panoramaMarshallHelper = clientPatternFinder("\xF3\x0F\x11\x05????\x48\x89\x05????\x48\xC7\x05????????\xC7\x05").add(11).relativeToAbsolute().as<decltype(panoramaMarshallHelper)>();
-    findOrCreateEconItemViewForItemID = clientPatternFinder("\xE8????\x4C\x89\xEF\x48\x89\x45\xC8").add(1).relativeToAbsolute().as<decltype(findOrCreateEconItemViewForItemID)>();
     createBaseTypeCache = clientPatternFinder("\xE8????\x48\x89\xDE\x5B\x48\x8B\x10").add(1).relativeToAbsolute().get();
     setItemSessionPropertyValue = clientPatternFinder("\xE8????\x48\x8B\x85????\x41\x83\xC4\x01").add(1).relativeToAbsolute().get();
 

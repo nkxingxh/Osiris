@@ -5,6 +5,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "CSGO/Functions.h"
 #include "CSGO/ItemSchema.h"
 #include "CSGO/MoveHelper.h"
 #include "CSGO/WeaponSystem.h"
@@ -16,6 +17,7 @@
 #include "Utils/TypeHint.h"
 
 #include "Platform/Macros/CallingConventions.h"
+#include "RetSpoof/FunctionInvoker.h"
 
 class KeyValues;
 
@@ -76,7 +78,7 @@ public:
     csgo::UtlVector<csgo::PlantedC4*>* plantedC4s;
     csgo::UtlMap<short, csgo::PanoramaEventRegistration>* registeredPanoramaEvents;
 
-    std::add_pointer_t<bool CDECL_CONV(csgo::Vector, csgo::Vector, short)> lineGoesThroughSmoke;
+    FunctionInvoker<csgo::LineGoesThroughSmoke> lineGoesThroughSmoke;
     bool(THISCALL_CONV* isOtherEnemy)(std::uintptr_t, std::uintptr_t);
     std::uintptr_t hud;
     int*(THISCALL_CONV* findHudElement)(std::uintptr_t, const char*);
@@ -95,7 +97,7 @@ public:
     KeyValues*(THISCALL_CONV* keyValuesFindKey)(KeyValues* keyValues, const char* keyName, bool create);
     void(THISCALL_CONV* keyValuesSetString)(KeyValues* keyValues, const char* value);
     csgo::WeaponSystem weaponSystem;
-    TypeHint<std::uintptr_t, csgo::GameEventDescriptor*(THISCALL_CONV*)(csgo::GameEventManagerPOD* thisptr, const char* name, int* cookie)> getEventDescriptor;
+    csgo::GetEventDescriptor getEventDescriptor;
     csgo::ActiveChannels* activeChannels;
     csgo::Channel* channels;
     csgo::PlayerResource** playerResource;
@@ -103,7 +105,7 @@ public:
     csgo::EntityPOD** gameRules;
     csgo::InventoryManager inventoryManager;
     csgo::PanoramaMarshallHelperPOD* panoramaMarshallHelper;
-    std::add_pointer_t<csgo::EconItemViewPOD* CDECL_CONV(std::uint64_t itemID)> findOrCreateEconItemViewForItemID;
+    FunctionInvoker<csgo::FindOrCreateEconItemViewForItemID> findOrCreateEconItemViewForItemID;
     std::uintptr_t createBaseTypeCache;
     TypeHint<std::uintptr_t, void(THISCALL_CONV*)(csgo::UiComponentInventoryPOD* thisptr, std::uint64_t itemID, const char* type, const char* value)> setItemSessionPropertyValue;
 
