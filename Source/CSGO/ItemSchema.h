@@ -250,14 +250,12 @@ public:
 
 struct EconItemPOD;
 
-class EconItem : private VirtualCallable {
+class EconItem : public VirtualCallableFromPOD<EconItem, EconItemPOD> {
 public:
-    EconItem(RetSpoofInvoker invoker, EconItemPOD* pod, const EconItemFunctions& econItemFunctions)
-        : VirtualCallable{ invoker, std::uintptr_t(pod) }, functions{ econItemFunctions }
+    EconItem(VirtualCallableFromPOD base, const EconItemFunctions& econItemFunctions)
+        : VirtualCallableFromPOD{ base }, functions{ econItemFunctions }
     {
     }
-
-    using VirtualCallable::getThis;
 
 #if IS_WIN32()
     VIRTUAL_METHOD(void, destructor, 0, (), (true))
@@ -278,11 +276,6 @@ public:
     void setCustomName(const char* name) const noexcept
     {
         FunctionInvoker{ getInvoker(), functions.setCustomName }(getPOD(), name);
-    }
-
-    [[nodiscard]] EconItemPOD* getPOD() const noexcept
-    {
-        return reinterpret_cast<EconItemPOD*>(getThis());
     }
 
 private:
@@ -364,14 +357,14 @@ public:
     VIRTUAL_METHOD_V(void, removeObject, 3, (SharedObjectPOD* object), (object))
 };
 
-class ClientSharedObjectCache : private VirtualCallable {
+struct ClientSharedObjectCachePOD;
+
+class ClientSharedObjectCache : public VirtualCallableFromPOD<ClientSharedObjectCache, ClientSharedObjectCachePOD> {
 public:
-    ClientSharedObjectCache(VirtualCallable virtualCallable, std::uintptr_t createBaseTypeCacheFn)
-        : VirtualCallable{ virtualCallable }, createBaseTypeCache{ createBaseTypeCacheFn }
+    ClientSharedObjectCache(VirtualCallableFromPOD base, std::uintptr_t createBaseTypeCacheFn)
+        : VirtualCallableFromPOD{ base }, createBaseTypeCache{ createBaseTypeCacheFn }
     {
     }
-
-    using VirtualCallable::getThis;
 
     SharedObjectTypeCachePOD* findBaseTypeCache(int classID) const noexcept
     {
