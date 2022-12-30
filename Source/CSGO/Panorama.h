@@ -22,18 +22,16 @@ public:
 
 struct PanoramaEventRegistration {
     int numberOfArgs;
-    PAD(4)
+    PAD(4);
     TypeHint<std::uintptr_t, void* (CDECL_CONV*)(void*)> makeEvent;
     TypeHint<std::uintptr_t, void* (CDECL_CONV*)(void*, const char* args, const char** result)> createEventFromString;
-    PAD(WIN32_LINUX(24, 48))
+    PAD(WIN32_LINUX(24, 48));
 };
 
-using UIEnginePointer = std::uintptr_t;
+struct UIEnginePOD;
 
-class UIEngine : private VirtualCallable {
+class UIEngine : public VirtualCallableFromPOD<UIEngine, UIEnginePOD> {
 public:
-    using VirtualCallable::VirtualCallable;
-
     VIRTUAL_METHOD_V(void, dispatchEvent, 52, (void* eventPtr), (eventPtr))
 };
 
@@ -41,7 +39,7 @@ struct PanoramaUIEnginePOD;
 
 class PanoramaUIEngine : public VirtualCallableFromPOD<PanoramaUIEngine, PanoramaUIEnginePOD> {
 public:
-    VIRTUAL_METHOD(UIEnginePointer, accessUIEngine, 11, (), ())
+    VIRTUAL_METHOD(UIEnginePOD*, accessUIEngine, 11, (), ())
 };
 
 }

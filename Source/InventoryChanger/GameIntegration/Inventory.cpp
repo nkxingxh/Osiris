@@ -36,7 +36,7 @@ void initItemCustomizationNotification(const OtherInterfaces& interfaces, const 
     std::string args{ "0,'" }; args += typeStr; args += "','"sv; args += std::to_string(static_cast<csgo::ItemId>(itemID)); args += '\'';
     const char* dummy;
     if (const auto event = retSpoofGadgets->client.invokeCdecl<void*>(std::uintptr_t(memory.registeredPanoramaEvents->memory[idx].value.createEventFromString), nullptr, args.c_str(), &dummy))
-        csgo::UIEngine{ retSpoofGadgets->client, interfaces.getPanoramaUIEngine().accessUIEngine() }.dispatchEvent(event);
+        csgo::UIEngine::from(retSpoofGadgets->client, interfaces.getPanoramaUIEngine().accessUIEngine()).dispatchEvent(event);
 }
 
 void updateNameTag(const Memory& memory, ItemId itemID, const char* newNameTag, const EconItemFunctions& econItemFunctions, const EconItemViewFunctions& econItemViewFunctions)
@@ -252,7 +252,7 @@ ItemId Inventory::createSOCItem(const game_items::Storage& gameItemStorage, cons
     csgo::SharedObjectTypeCache::from(retSpoofGadgets->client, baseTypeCache).addObject((csgo::SharedObjectPOD*)econItemPOD);
     localInventory.soCreated(localInventory.getSOID(), (csgo::SharedObjectPOD*)econItemPOD, 4);
 
-    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, memory.setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
+    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
         inventoryComponent.setItemSessionPropertyValue(econItemPOD->itemID, "recent", "0");
         inventoryComponent.setItemSessionPropertyValue(econItemPOD->itemID, "updated", "0");
     }
@@ -285,7 +285,7 @@ ItemId Inventory::assingNewItemID(ItemId itemID)
     if (const auto view = csgo::EconItemView::from(retSpoofGadgets->client, memory.findOrCreateEconItemViewForItemID(newItemID), econItemViewFunctions); view.getPOD() != nullptr)
         view.clearInventoryImageRGBA();
 
-    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, memory.setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
+    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
         inventoryComponent.setItemSessionPropertyValue(newItemID, "recent", "0");
         inventoryComponent.setItemSessionPropertyValue(newItemID, "updated", "0");
     }
@@ -469,7 +469,7 @@ void Inventory::equipItem(ItemId itemID, csgo::Team team, std::uint8_t slot)
 
 void Inventory::markItemUpdated(ItemId itemID)
 {
-    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, memory.setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
+    if (const auto inventoryComponent = csgo::UiComponentInventory::from(retSpoofGadgets->client, *uiComponentInventory, setItemSessionPropertyValue); inventoryComponent.getPOD() != nullptr) {
         inventoryComponent.setItemSessionPropertyValue(static_cast<csgo::ItemId>(itemID), "recent", "0");
         inventoryComponent.setItemSessionPropertyValue(static_cast<csgo::ItemId>(itemID), "updated", "1");
     }
@@ -480,7 +480,7 @@ void Inventory::pickEmUpdated()
     if (const auto idx = memory.registeredPanoramaEvents->find(memory.makePanoramaSymbol("PanoramaComponent_MatchList_PredictionUploaded")); idx != -1) {
         const char* dummy;
         if (const auto eventPtr = retSpoofGadgets->client.invokeCdecl<void*>(std::uintptr_t(memory.registeredPanoramaEvents->memory[idx].value.createEventFromString), nullptr, "", &dummy))
-            csgo::UIEngine{ retSpoofGadgets->client, interfaces.getPanoramaUIEngine().accessUIEngine() }.dispatchEvent(eventPtr);
+            csgo::UIEngine::from(retSpoofGadgets->client, interfaces.getPanoramaUIEngine().accessUIEngine()).dispatchEvent(eventPtr);
     }
 }
 
