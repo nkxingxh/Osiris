@@ -33,6 +33,7 @@
 #include <CSGO/EntityList.h>
 #include <CSGO/Constants/ConVarNames.h>
 #include <CSGO/Constants/FrameStage.h>
+#include <CSGO/Constants/GameEventNames.h>
 #include <CSGO/Constants/UserMessages.h>
 #include <CSGO/GameEvent.h>
 #include <CSGO/GlobalVars.h>
@@ -57,6 +58,7 @@
 
 #include "../imguiCustom.h"
 #include <Interfaces/ClientInterfaces.h>
+#include <RetSpoof/FunctionInvoker.h>
 
 struct PreserveKillfeed {
     bool enabled = false;
@@ -1250,7 +1252,7 @@ void Misc::autoAccept(const char* soundEntry) noexcept
         return;
 
     if (const auto idx = memory.registeredPanoramaEvents->find(memory.makePanoramaSymbol("MatchAssistedAccept")); idx != -1) {
-        if (const auto eventPtr = retSpoofGadgets->client.invokeCdecl<void*>(std::uintptr_t(memory.registeredPanoramaEvents->memory[idx].value.makeEvent), nullptr))
+        if (const auto eventPtr = FunctionInvoker{ retSpoofGadgets->client, memory.registeredPanoramaEvents->memory[idx].value.makeEvent }(nullptr))
             csgo::UIEngine::from(retSpoofGadgets->client, interfaces.getPanoramaUIEngine().accessUIEngine()).dispatchEvent(eventPtr);
     }
 
@@ -1316,7 +1318,7 @@ void Misc::updateEventListeners(const EngineInterfaces& engineInterfaces, bool f
     static bool listenerRegistered = false;
 
     if (miscConfig.purchaseList.enabled && !listenerRegistered) {
-        engineInterfaces.getGameEventManager(memory.getEventDescriptor).addListener(&listener, "item_purchase");
+        engineInterfaces.getGameEventManager(memory.getEventDescriptor).addListener(&listener, csgo::item_purchase);
         listenerRegistered = true;
     } else if ((!miscConfig.purchaseList.enabled || forceRemove) && listenerRegistered) {
         engineInterfaces.getGameEventManager(memory.getEventDescriptor).removeListener(&listener);
