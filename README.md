@@ -305,7 +305,7 @@ hook 实现文件位于 [Hooks](Source/Hooks) 目录。
 
 ## 许可
 
-> Copyright (c) 2018-2022 Daniel Krupiński
+> Copyright (c) 2018-2023 Daniel Krupiński
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/mit-license.php) - see the [LICENSE](https://github.com/danielkrupinski/Osiris/blob/master/LICENSE) file for details.
 
