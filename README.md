@@ -267,17 +267,61 @@ Microsoft Visual Studio 2019 16.10 (或更新版本), 平台工具集 v142 和 W
 
 ### 从源代码编译
 
+<details>
+
+<summary>Windows</summary>
+
 当您获取了源代码副本后，下一步是在 Microsoft Visual Studio 2019 中打开 **Osiris.sln**。
 
 然后将构建配置更改为 `Release | x86`并点击 **生成解决方案** 即可。
 
 如果一切顺利，你应该得到 `Osiris.dll` 二进制文件。
 
+</details>
+
+<details>
+
+<summary>Linux</summary>
+
+Install dependencies:
+
+    sudo apt-get update && sudo apt-get install -y libsdl2-dev libfreetype-dev
+
+Configure with CMake:
+
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=g++-11 -S . -B build
+
+Instead of g++-11 you can use g++-12, clang++-13, clang++-14, clang++-15.
+
+Build:
+
+    cmake --build build -j $(nproc --all)
+
+After following these steps you should receive `libOsiris.so` file in `build` directory.
+
+</details>
+
 ### 加载 / 注入游戏进程
+
+<details>
+
+<summary>Windows</summary>
 
 打开你喜欢的 [DLL 注入器](https://en.wikipedia.org/wiki/DLL_injection) 并将 `Osiris.dll` 注入进 `csgo.exe` 进程.
 
 注入后，可通过 `INSERT` 键打开菜单。
+
+</details>
+
+<details>
+
+<summary>Linux</summary>
+
+You can run the following script in the directory containing `libOsiris.so`:
+
+    sudo gdb -batch-silent -p $(pidof csgo_linux64) -ex "call (void*)__libc_dlopen_mode(\"$PWD/libOsiris.so\", 2)"
+
+</details>
 
 ### 进一步优化
 如果您的 CPU 支持 AVX / AVX2 / AVX-512 指令集，则可以在项目设置中启用它。这将产生更高性能的代码，并针对您的 CPU 进行优化。当前在项目设置中选择 SSE2 指令。
