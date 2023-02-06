@@ -107,48 +107,23 @@ void Hooks::install(csgo::ClientPOD* clientInterface, const EngineInterfaces& en
 
 #endif
     
-    bspQuery.init(engineInterfaces.getEngine().getBSPTreeQuery());
-    bspQuery.hookAt(6, &listLeavesInBox);
-
-    client.init(clientInterface);
-    client.hookAt(37, &frameStageNotify);
-    client.hookAt(38, &dispatchUserMessage);
+    bspQueryHooks.install(engineInterfaces.getEngine().getBSPTreeQuery());
 
 #if IS_WIN32()
-    keyValuesSystem.init(memory.keyValuesSystem);
-    keyValuesSystem.hookAt(2, &allocKeyValuesMemory);
+    keyValuesSystemHooks.install(memory.keyValuesSystem);
 #endif
 
     engineHooks.install(engineInterfaces.getEngine().getPOD());
+    clientHooks.install(clientInterface);
     clientModeHooks.install(memory.clientMode);
-
-    inventory.init((void*)memory.inventoryManager.getLocalInventory());
-    inventory.hookAt(1, &soUpdated);
-
-    inventoryManager.init(memory.inventoryManager.getPOD());
-    inventoryManager.hookAt(WIN32_LINUX(29, 30), &updateInventoryEquippedState);
-
-    modelRender.init(engineInterfaces.getPODs().modelRender);
-    modelRender.hookAt(21, &drawModelExecute);
-
-    panoramaMarshallHelper.init(memory.panoramaMarshallHelper);
-    panoramaMarshallHelper.hookAt(1, &getNumArgs);
-    panoramaMarshallHelper.hookAt(5, &getArgAsNumber);
-    panoramaMarshallHelper.hookAt(7, &getArgAsString);
-    panoramaMarshallHelper.hookAt(WIN32_LINUX(14, 11), &setResultInt);
-
-    sound.init(engineInterfaces.getPODs().sound);
-    sound.hookAt(WIN32_LINUX(5, 6), &emitSound);
-
-    surface.init(interfaces.getSurface().getPOD());
-    surface.hookAt(WIN32_LINUX(15, 14), &setDrawColor);
-    
-    svCheats.init(interfaces.getCvar().findVar(csgo::sv_cheats));
-    svCheats.hookAt(WIN32_LINUX(13, 16), &svCheatsGetInt);
-
-    viewRender.init(memory.viewRender);
-    viewRender.hookAt(WIN32_LINUX(39, 40), &render2dEffectsPreHud);
-    viewRender.hookAt(WIN32_LINUX(41, 42), &renderSmokeOverlay);
+    playerInventoryHooks.install(memory.inventoryManager.getLocalInventory());
+    inventoryManagerHooks.install(memory.inventoryManager.getPOD());
+    engineSoundHooks.install(engineInterfaces.getPODs().sound);
+    modelRenderHooks.install(engineInterfaces.getPODs().modelRender);
+    panoramaMarshallHelperHooks.install(memory.panoramaMarshallHelper);
+    surfaceHooks.install(interfaces.getSurface().getPOD());
+    svCheatsHooks.install(interfaces.getCvar().findVar(csgo::sv_cheats));
+    viewRenderHooks.install(memory.viewRender);
 
 #if IS_WIN32()
     if (DWORD oldProtection; VirtualProtect(memory.dispatchSound, 4, PAGE_EXECUTE_READWRITE, &oldProtection)) {
@@ -164,8 +139,6 @@ void Hooks::install(csgo::ClientPOD* clientInterface, const EngineInterfaces& en
     }
 
 #if IS_WIN32()
-    surface.hookAt(67, &lockCursor);
-
     if constexpr (std::is_same_v<HookType, MinHook>)
         MH_EnableHook(MH_ALL_HOOKS);
 #endif
@@ -183,19 +156,18 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInte
     }
 #endif
 
-    bspQuery.restore();
-    client.restore();
-    inventory.restore();
-    inventoryManager.restore();
-    modelRender.restore();
-    panoramaMarshallHelper.restore();
-    sound.restore();
-    surface.restore();
-    svCheats.restore();
-    viewRender.restore();
-
     engineHooks.uninstall();
+    clientHooks.uninstall();
     clientModeHooks.uninstall();
+    panoramaMarshallHelperHooks.uninstall();
+    viewRenderHooks.uninstall();
+    playerInventoryHooks.uninstall();
+    inventoryManagerHooks.uninstall();
+    bspQueryHooks.uninstall();
+    engineSoundHooks.uninstall();
+    svCheatsHooks.uninstall();
+    modelRenderHooks.uninstall();
+    surfaceHooks.uninstall();
 
     Netvars::restore();
 
@@ -203,7 +175,7 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInte
     inventoryChanger.reset(memory);
 
 #if IS_WIN32()
-    keyValuesSystem.restore();
+    keyValuesSystemHooks.uninstall();
 
     SetWindowLongPtrW(window, GWLP_WNDPROC, LONG_PTR(originalWndProc));
     **reinterpret_cast<void***>(memory.present) = originalPresent;
@@ -220,11 +192,6 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInte
     *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent) = pollEvent;
     *reinterpret_cast<decltype(swapWindow)*>(sdlFunctions.swapWindow) = swapWindow;
 #endif
-}
-
-void Hooks::callOriginalDrawModelExecute(void* ctx, void* state, const csgo::ModelRenderInfo& info, csgo::matrix3x4* customBoneToWorld) noexcept
-{
-    modelRender.callOriginal<void, 21>(ctx, state, &info, customBoneToWorld);
 }
 
 #if !IS_WIN32()

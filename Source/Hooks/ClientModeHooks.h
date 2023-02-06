@@ -5,8 +5,20 @@
 #include <Platform/Macros/PlatformSpecific.h>
 #include <RetSpoof/FunctionInvoker.h>
 
-namespace csgo { struct ClientMode; }
-namespace csgo { struct ViewSetup; }
+namespace csgo
+{
+    struct ClientMode;
+    struct UserCmd;
+    struct ViewSetup;
+}
+
+bool FASTCALL_CONV shouldDrawFog(FASTCALL_THIS(csgo::ClientMode* thisptr)) noexcept;
+void FASTCALL_CONV overrideView(FASTCALL_THIS(csgo::ClientMode* thisptr), csgo::ViewSetup* setup) noexcept;
+bool FASTCALL_CONV createMove(FASTCALL_THIS(csgo::ClientMode* thisptr), float inputSampleTime, csgo::UserCmd* cmd) noexcept;
+bool FASTCALL_CONV shouldDrawViewModel(FASTCALL_THIS(csgo::ClientMode* thisptr)) noexcept;
+float FASTCALL_CONV getViewModelFov(FASTCALL_THIS(csgo::ClientMode* thisptr)) noexcept;
+void FASTCALL_CONV doPostScreenEffects(FASTCALL_THIS(csgo::ClientMode* thisptr), void* param) noexcept;
+void FASTCALL_CONV updateColorCorrectionWeights(FASTCALL_THIS(csgo::ClientMode* thisptr)) noexcept;
 
 template <typename HookImpl>
 class ClientModeHooks {

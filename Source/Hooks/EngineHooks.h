@@ -7,6 +7,10 @@
 namespace csgo { struct DemoPlaybackParameters; }
 namespace csgo { struct EnginePOD; }
 
+bool FASTCALL_CONV isPlayingDemo(FASTCALL_THIS(csgo::EnginePOD* thisptr)) noexcept;
+float FASTCALL_CONV getScreenAspectRatio(FASTCALL_THIS(csgo::EnginePOD* thisptr), int width, int height) noexcept;
+const csgo::DemoPlaybackParameters* FASTCALL_CONV getDemoPlaybackParameters(FASTCALL_THIS(csgo::EnginePOD* thisptr)) noexcept;
+
 template <typename HookImpl>
 class EngineHooks {
 public:
