@@ -1,15 +1,13 @@
 #pragma once
 
 #include <Endpoints.h>
+#include <HookType.h>
 #include <Platform/Macros/CallingConventions.h>
 #include <Platform/Macros/PlatformSpecific.h>
 #include <RetSpoof/FunctionInvoker.h>
 
 namespace csgo { struct Vector; }
 
-int FASTCALL_CONV listLeavesInBox(FASTCALL_THIS(void* thisptr), const csgo::Vector& mins, const csgo::Vector& maxs, unsigned short* list, int listMax) noexcept;
-
-template <typename HookImpl>
 class BspQueryHooks {
 public:
     void install(void* engineSpatialQuery)
@@ -28,8 +26,10 @@ public:
         return FunctionInvoker{ retSpoofGadgets->client, originalListLeavesInBox };
     }
 
+    static int FASTCALL_CONV listLeavesInBox(FASTCALL_THIS(void* thisptr), const csgo::Vector& mins, const csgo::Vector& maxs, unsigned short* list, int listMax) noexcept;
+
 private:
-    HookImpl hookImpl;
+    HookType hookImpl;
 
     int (THISCALL_CONV* originalListLeavesInBox)(void* engineSpatialQuery, const csgo::Vector* mins, const csgo::Vector* maxs, unsigned short* list, int listMax);
 };

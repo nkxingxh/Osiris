@@ -311,9 +311,6 @@
     <ClCompile Include="GlobalContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Helpers\PatternFinder.cpp">
-      <Filter>Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="Endpoints.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -346,6 +343,12 @@
     </ClCompile>
     <ClCompile Include="RetSpoof\RetSpoofGadgets.cpp">
       <Filter>RetSpoof</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\PatternNotFoundHandler.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\KeyValuesFactory.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -684,9 +687,6 @@
     </ClInclude>
     <ClInclude Include="Platform\Windows\DynamicLibrarySection.h">
       <Filter>Platform\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Helpers\PatternFinder.h">
-      <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="Interfaces\InterfaceFinder.h">
       <Filter>Interfaces</Filter>
@@ -1116,6 +1116,33 @@
     </ClInclude>
     <ClInclude Include="Hooks\KeyValuesSystemHooks.h">
       <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\PatternNotFoundHandler.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\DynamicLibrary.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\DynamicLibraryWrapper.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="HookType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\UtlRbTree.h">
+      <Filter>CSGO</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\SplitScreen.h">
+      <Filter>CSGO</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ClientStateHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\KeyValuesFactory.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\Helpers\KeyValuesFunctions.h">
+      <Filter>CSGO\Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

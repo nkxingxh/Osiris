@@ -51,6 +51,9 @@
 
 #include "Interfaces/ClientInterfaces.h"
 
+#include "Platform/DynamicLibrary.h"
+#include "Platform/DynamicLibraryWrapper.h"
+
 GlobalContext::GlobalContext()
 {
 #if IS_WIN32()
@@ -61,335 +64,12 @@ GlobalContext::GlobalContext()
     const linux_platform::SharedObject engineDLL{ linux_platform::DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
 #endif
 
-    retSpoofGadgets.emplace(helpers::PatternFinder{ getCodeSection(clientDLL.getView()) }, helpers::PatternFinder{ getCodeSection(engineDLL.getView()) });
-}
-
-bool GlobalContext::createMoveHook(csgo::ClientMode* thisptr, float inputSampleTime, csgo::UserCmd* cmd)
-{
-    auto result = hooks->clientModeHooks.getOriginalCreateMove()(thisptr, inputSampleTime, cmd);
-
-    if (!cmd->commandNumber)
-        return result;
-
-#if IS_WIN32()
-    // bool& sendPacket = *reinterpret_cast<bool*>(*reinterpret_cast<std::uintptr_t*>(FRAME_ADDRESS()) - 0x1C);
-    // since 19.02.2022 game update sendPacket is no longer on stack
-    bool sendPacket = true;
-#else
-    bool dummy;
-    bool& sendPacket = dummy;
-#endif
-    static auto previousViewAngles{ cmd->viewangles };
-    const auto currentViewAngles{ cmd->viewangles };
-
-    memory->globalVars->serverTime(cmd);
-    features->misc.nadePredict();
-    features->misc.antiAfkKick(cmd);
-    features->misc.fastStop(cmd);
-    features->misc.prepareRevolver(getEngineInterfaces().getEngine(), cmd);
-    features->visuals.removeShadows();
-    features->misc.runReportbot(getEngineInterfaces().getEngine());
-    features->misc.bunnyHop(cmd);
-    features->misc.autoStrafe(cmd);
-    features->misc.removeCrouchCooldown(cmd);
-    features->misc.autoPistol(cmd);
-    features->misc.autoReload(cmd);
-    features->misc.updateClanTag();
-    features->misc.fakeBan(getEngineInterfaces().getEngine());
-    features->misc.stealNames(getEngineInterfaces().getEngine());
-    features->misc.revealRanks(cmd);
-    features->misc.quickReload(cmd);
-    features->misc.fixTabletSignal();
-    features->misc.slowwalk(cmd);
-
-    EnginePrediction::run(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, *memory, cmd);
-
-    features->aimbot.run(features->misc, getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *config, *memory, cmd);
-    Triggerbot::run(getEngineInterfaces().engineTrace(), getOtherInterfaces(), *memory, *config, cmd);
-    features->backtrack.run(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), *memory, cmd);
-    features->misc.edgejump(cmd);
-    features->misc.moonwalk(cmd);
-    features->misc.fastPlant(getEngineInterfaces().engineTrace(), cmd);
-
-    if (!(cmd->buttons & (csgo::UserCmd::IN_ATTACK | csgo::UserCmd::IN_ATTACK2))) {
-        features->misc.chokePackets(getEngineInterfaces().getEngine(), sendPacket);
-    }
-
-    auto viewAnglesDelta{ cmd->viewangles - previousViewAngles };
-    viewAnglesDelta.normalize();
-    viewAnglesDelta.x = std::clamp(viewAnglesDelta.x, -features->misc.maxAngleDelta(), features->misc.maxAngleDelta());
-    viewAnglesDelta.y = std::clamp(viewAnglesDelta.y, -features->misc.maxAngleDelta(), features->misc.maxAngleDelta());
-
-    cmd->viewangles = previousViewAngles + viewAnglesDelta;
-
-    cmd->viewangles.normalize();
-    features->misc.fixMovement(cmd, currentViewAngles.y);
-
-    cmd->viewangles.x = std::clamp(cmd->viewangles.x, -89.0f, 89.0f);
-    cmd->viewangles.y = std::clamp(cmd->viewangles.y, -180.0f, 180.0f);
-    cmd->viewangles.z = 0.0f;
-    cmd->forwardmove = std::clamp(cmd->forwardmove, -450.0f, 450.0f);
-    cmd->sidemove = std::clamp(cmd->sidemove, -450.0f, 450.0f);
-
-    previousViewAngles = cmd->viewangles;
-
-    cmd->viewanglesBackup = cmd->viewangles;
-    cmd->buttonsBackup = cmd->buttons;
-
-    return false;
-}
-
-void GlobalContext::doPostScreenEffectsHook(csgo::ClientMode* thisptr, void* param)
-{
-    if (getEngineInterfaces().getEngine().isInGame()) {
-        features->visuals.thirdperson();
-        features->visuals.inverseRagdollGravity();
-        features->visuals.reduceFlashEffect();
-        features->visuals.updateBrightness();
-        features->visuals.remove3dSky();
-        features->glow.render(getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, *memory);
-    }
-    hooks->clientModeHooks.getOriginalDoPostScreenEffects()(thisptr, param);
-}
-
-float GlobalContext::getViewModelFovHook(csgo::ClientMode* thisptr)
-{
-    float additionalFov = features->visuals.viewModelFov();
-    if (localPlayer) {
-        if (const auto activeWeapon = csgo::Entity::from(retSpoofGadgets->client, localPlayer.get().getActiveWeapon()); activeWeapon.getPOD() != nullptr && activeWeapon.getNetworkable().getClientClass()->classId == ClassId::Tablet)
-            additionalFov = 0.0f;
-    }
-
-    return hooks->clientModeHooks.getOriginalGetViewModelFov()(thisptr) + additionalFov;
-}
-
-void GlobalContext::drawModelExecuteHook(csgo::ModelRenderPOD* thisptr, void* ctx, void* state, const csgo::ModelRenderInfo& info, csgo::matrix3x4* customBoneToWorld)
-{
-    if (getOtherInterfaces().getStudioRender().isForcedMaterialOverride())
-        return hooks->modelRenderHooks.getOriginalDrawModelExecute()(thisptr, ctx, state, &info, customBoneToWorld);
-
-    if (features->visuals.removeHands(info.model->name) || features->visuals.removeSleeves(info.model->name) || features->visuals.removeWeapons(info.model->name))
-        return;
-
-    if (!features->chams.render(features->backtrack, *config, ctx, state, info, customBoneToWorld))
-        hooks->modelRenderHooks.getOriginalDrawModelExecute()(thisptr, ctx, state, &info, customBoneToWorld);
-
-    getOtherInterfaces().getStudioRender().forcedMaterialOverride(nullptr);
-}
-
-int GlobalContext::svCheatsGetIntHook(csgo::ConVarPOD* thisptr, ReturnAddress returnAddress)
-{
-    const auto original = hooks->svCheatsHooks.getOriginalSvCheatsGetInt()(thisptr);
-    if (features->visuals.svCheatsGetBoolHook(returnAddress))
-        return 1;
-    return original;
-}
-
-void GlobalContext::frameStageNotifyHook(csgo::ClientPOD* thisptr, csgo::FrameStage stage)
-{
-    if (getEngineInterfaces().getEngine().isConnected() && !getEngineInterfaces().getEngine().isInGame())
-        features->misc.changeName(getEngineInterfaces().getEngine(), true, nullptr, 0.0f);
-
-    if (stage == csgo::FrameStage::START)
-        GameData::update(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), *memory);
-
-    if (stage == csgo::FrameStage::RENDER_START) {
-        features->misc.preserveKillfeed();
-        features->misc.disablePanoramablur();
-        features->visuals.colorWorld();
-        features->misc.updateEventListeners(getEngineInterfaces());
-        features->visuals.updateEventListeners();
-    }
-    if (getEngineInterfaces().getEngine().isInGame()) {
-        features->visuals.skybox(stage);
-        features->visuals.removeBlur(stage);
-        features->misc.oppositeHandKnife(stage);
-        features->visuals.removeGrass(stage);
-        features->visuals.modifySmoke(stage);
-        features->visuals.disablePostProcessing(stage);
-        features->visuals.removeVisualRecoil(stage);
-        features->visuals.applyZoom(stage);
-        features->misc.fixAnimationLOD(getEngineInterfaces().getEngine(), stage);
-        features->backtrack.update(getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *memory, stage);
-    }
-    features->inventoryChanger.run(*memory, stage);
-
-    hooks->clientHooks.getOriginalFrameStageNotify()(thisptr, stage);
-}
-
-int GlobalContext::emitSoundHook(csgo::EngineSoundPOD* thisptr, void* filter, int entityIndex, int channel, const char* soundEntry, unsigned int soundEntryHash, const char* sample, float volume, int seed, int soundLevel, int flags, int pitch, const csgo::Vector& origin, const csgo::Vector& direction, void* utlVecOrigins, bool updatePositions, float soundtime, int speakerentity, void* soundParams)
-{
-    Sound::modulateSound(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, *memory, soundEntry, entityIndex, volume);
-    features->misc.autoAccept(soundEntry);
-
-    volume = std::clamp(volume, 0.0f, 1.0f);
-    return hooks->engineSoundHooks.getOriginalEmitSound()(thisptr, filter, entityIndex, channel, soundEntry, soundEntryHash, sample, volume, seed, soundLevel, flags, pitch, &origin, &direction, utlVecOrigins, updatePositions, soundtime, speakerentity, soundParams);
-}
-
-bool GlobalContext::shouldDrawFogHook(csgo::ClientMode* thisptr, ReturnAddress returnAddress)
-{
-#if IS_WIN32()
-    if constexpr (std::is_same_v<HookType, MinHook>) {
-        if (returnAddress != memory->shouldDrawFogReturnAddress)
-            return hooks->clientModeHooks.getOriginalShouldDrawFog()(thisptr);
-    }
-#endif
-
-    return !features->visuals.shouldRemoveFog();
-}
-
-bool GlobalContext::shouldDrawViewModelHook(csgo::ClientMode* thisptr)
-{
-    if (features->visuals.isZoomOn() && localPlayer && localPlayer.get().fov() < 45 && localPlayer.get().fovStart() < 45)
-        return false;
-    return hooks->clientModeHooks.getOriginalShouldDrawViewModel()(thisptr);
-}
-
-#if IS_WIN32()
-void GlobalContext::lockCursorHook(csgo::SurfacePOD* thisptr)
-{
-    if (gui->isOpen())
-        return getOtherInterfaces().getSurface().unlockCursor();
-    return hooks->surfaceHooks.getOriginalLockCursor()(thisptr);
-}
-#endif
-
-void GlobalContext::setDrawColorHook(csgo::SurfacePOD* thisptr, int r, int g, int b, int a, ReturnAddress returnAddress)
-{
-    features->visuals.setDrawColorHook(returnAddress, a);
-    hooks->surfaceHooks.getOriginalSetDrawColor()(thisptr, r, g, b, a);
-}
-
-void GlobalContext::overrideViewHook(csgo::ClientMode* thisptr, csgo::ViewSetup* setup)
-{
-    if (localPlayer && !localPlayer.get().isScoped())
-        setup->fov += features->visuals.fov();
-    setup->farZ += features->visuals.farZ() * 10;
-    hooks->clientModeHooks.getOriginalOverrideView()(thisptr, setup);
-}
-
-int GlobalContext::dispatchSoundHook(csgo::SoundInfo& soundInfo)
-{
-    if (const char* soundName = getOtherInterfaces().getSoundEmitter().getSoundName(soundInfo.soundIndex)) {
-        Sound::modulateSound(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, *memory, soundName, soundInfo.entityIndex, soundInfo.volume);
-        soundInfo.volume = std::clamp(soundInfo.volume, 0.0f, 1.0f);
-    }
-    return hooks->originalDispatchSound(soundInfo);
-}
-
-void GlobalContext::render2dEffectsPreHudHook(csgo::ViewRender* thisptr, void* viewSetup)
-{
-    features->visuals.applyScreenEffects();
-    features->visuals.hitEffect();
-    hooks->viewRenderHooks.getOriginalRender2dEffectsPreHud()(thisptr, viewSetup);
-}
-
-const csgo::DemoPlaybackParameters* GlobalContext::getDemoPlaybackParametersHook(csgo::EnginePOD* thisptr, ReturnAddress returnAddress)
-{
-    const auto params = hooks->engineHooks.getOriginalGetDemoPlaybackParameters()(thisptr);
-
-    if (params)
-        return features->misc.getDemoPlaybackParametersHook(returnAddress, *params);
-
-    return params;
-}
-
-bool GlobalContext::dispatchUserMessageHook(csgo::ClientPOD* thisptr, csgo::UserMessageType type, int passthroughFlags, int size, const void* data)
-{
-    features->misc.dispatchUserMessageHook(type, size, data);
-    if (type == csgo::UserMessageType::Text)
-        features->inventoryChanger.onUserTextMsg(*memory, data, size);
-
-    return hooks->clientHooks.getOriginalDispatchUserMessage()(thisptr, type, passthroughFlags, size, data);
-}
-
-bool GlobalContext::isPlayingDemoHook(csgo::EnginePOD* thisptr, ReturnAddress returnAddress, std::uintptr_t frameAddress)
-{
-    const auto result = hooks->engineHooks.getOriginalIsPlayingDemo()(thisptr);
-
-    if (features->misc.isPlayingDemoHook(returnAddress, frameAddress))
-        return true;
-
-    return result;
-}
-
-void GlobalContext::updateColorCorrectionWeightsHook(csgo::ClientMode* thisptr)
-{
-    hooks->clientModeHooks.getOriginalUpdateColorCorrectionWeights()(thisptr);
-    features->visuals.updateColorCorrectionWeightsHook();
-}
-
-float GlobalContext::getScreenAspectRatioHook(csgo::EnginePOD* thisptr, int width, int height)
-{
-    if (features->misc.aspectRatio() != 0.0f)
-        return features->misc.aspectRatio();
-    return hooks->engineHooks.getOriginalGetScreenAspectRatio()(thisptr, width, height);
-}
-
-void GlobalContext::renderSmokeOverlayHook(csgo::ViewRender* thisptr, bool preViewModel)
-{
-    if (!features->visuals.renderSmokeOverlayHook())
-        hooks->viewRenderHooks.getOriginalRenderSmokeOverlay()(thisptr, preViewModel);
-}
-
-double GlobalContext::getArgAsNumberHook(csgo::PanoramaMarshallHelperPOD* thisptr, void* params, int index, ReturnAddress returnAddress)
-{
-    const auto result = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(thisptr, params, index);
-    features->inventoryChanger.getArgAsNumberHook(static_cast<int>(result), returnAddress);
-    return result;
-}
-
-const char* GlobalContext::getArgAsStringHook(csgo::PanoramaMarshallHelperPOD* thisptr, void* params, int index, ReturnAddress returnAddress)
-{
-    const auto result = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(thisptr, params, index);
-
-    if (result)
-        features->inventoryChanger.getArgAsStringHook(*memory, result, returnAddress, params);
-
-    return result;
-}
-
-void GlobalContext::setResultIntHook(csgo::PanoramaMarshallHelperPOD* thisptr, void* params, int result, ReturnAddress returnAddress)
-{
-    result = features->inventoryChanger.setResultIntHook(returnAddress, params, result);
-    hooks->panoramaMarshallHelperHooks.getOriginalSetResultInt()(thisptr, params, result);
-}
-
-unsigned GlobalContext::getNumArgsHook(csgo::PanoramaMarshallHelperPOD* thisptr, void* params, ReturnAddress returnAddress)
-{
-    const auto result = hooks->panoramaMarshallHelperHooks.getOriginalGetNumArgs()(memory->panoramaMarshallHelper, params);
-    features->inventoryChanger.getNumArgsHook(thisptr, result, returnAddress, params);
-    return result;
-}
-
-void GlobalContext::updateInventoryEquippedStateHook(csgo::InventoryManagerPOD* thisptr, std::uintptr_t inventory, csgo::ItemId itemID, csgo::Team team, int slot, bool swap)
-{
-    features->inventoryChanger.onItemEquip(team, slot, itemID);
-    hooks->inventoryManagerHooks.getOriginalUpdateInventoryEquippedState()(thisptr, inventory, itemID, team, slot, swap);
-}
-
-void GlobalContext::soUpdatedHook(csgo::CSPlayerInventoryPOD* thisptr, csgo::SOID owner, csgo::SharedObjectPOD* object, int event)
-{
-    features->inventoryChanger.onSoUpdated(csgo::SharedObject::from(retSpoofGadgets->client, object));
-    hooks->playerInventoryHooks.getOriginalSoUpdated()(thisptr, owner, object, event);
-}
-
-int GlobalContext::listLeavesInBoxHook(void* thisptr, const csgo::Vector& mins, const csgo::Vector& maxs, unsigned short* list, int listMax, ReturnAddress returnAddress, std::uintptr_t frameAddress)
-{
-    if (const auto newVectors = features->misc.listLeavesInBoxHook(returnAddress, frameAddress))
-        return hooks->bspQueryHooks.getOriginalListLeavesInBox()(getEngineInterfaces().getEngine().getBSPTreeQuery(), &newVectors->first, &newVectors->second, list, listMax);
-    return hooks->bspQueryHooks.getOriginalListLeavesInBox()(getEngineInterfaces().getEngine().getBSPTreeQuery(), &mins, &maxs, list, listMax);
+    PatternNotFoundHandler patternNotFoundHandler;
+    retSpoofGadgets.emplace(PatternFinder{ getCodeSection(clientDLL.getView()), patternNotFoundHandler }, PatternFinder{ getCodeSection(engineDLL.getView()), patternNotFoundHandler });
 }
 
 #if IS_WIN32()
 LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-void* GlobalContext::allocKeyValuesMemoryHook(csgo::KeyValuesSystemPOD* thisptr, int size, ReturnAddress returnAddress)
-{
-    if (returnAddress == memory->keyValuesAllocEngine || returnAddress == memory->keyValuesAllocClient)
-        return nullptr;
-    return hooks->keyValuesSystemHooks.getOriginalAllocKeyValuesMemory()(thisptr, size);
-}
 
 LRESULT GlobalContext::wndProcHook(HWND window, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -398,27 +78,9 @@ LRESULT GlobalContext::wndProcHook(HWND window, UINT msg, WPARAM wParam, LPARAM 
         getOtherInterfaces().getInputSystem().enableInput(!gui->isOpen());
     } else if (state == GlobalContext::State::NotInitialized) {
         state = GlobalContext::State::Initializing;
-
-        const windows_platform::DynamicLibrary clientDLL{ windows_platform::DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
-        clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientDLL.getView(), retSpoofGadgets->client } });
-        const windows_platform::DynamicLibrary engineDLL{ windows_platform::DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
-        engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineDLL.getView(), retSpoofGadgets->client } });
-        interfaces.emplace();
-
-        memory.emplace(helpers::PatternFinder{ getCodeSection(clientDLL.getView()) }, helpers::PatternFinder{ getCodeSection(engineDLL.getView()) }, clientInterfaces->client, *retSpoofGadgets);
-
-        Netvars::init(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getClient());
-        gameEventListener.emplace(getEngineInterfaces().getGameEventManager(memory->getEventDescriptor));
-
         ImGui::CreateContext();
         ImGui_ImplWin32_Init(window);
-
-        randomGenerator.emplace();
-        features.emplace(createFeatures(*memory, ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), helpers::PatternFinder{ getCodeSection(clientDLL.getView()) }, helpers::PatternFinder{ getCodeSection(engineDLL.getView()) }, *randomGenerator));
-        config.emplace(features->misc, features->inventoryChanger, features->glow, features->backtrack, features->visuals, getOtherInterfaces(), *memory);
-        gui.emplace();
-        hooks->install(clientInterfaces->client, getEngineInterfaces(), getOtherInterfaces(), *memory);
-
+        initialize();
         state = GlobalContext::State::Initialized;
     }
 
@@ -468,27 +130,8 @@ int GlobalContext::pollEventHook(SDL_Event* event)
             event->type = 0;
     } else if (state == GlobalContext::State::NotInitialized) {
         state = GlobalContext::State::Initializing;
-
-        const linux_platform::SharedObject clientSo{ linux_platform::DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
-        clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientSo.getView(), retSpoofGadgets->client } });
-        const linux_platform::SharedObject engineSo{ linux_platform::DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
-        engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineSo.getView(), retSpoofGadgets->client } });
-
-        interfaces.emplace();
-        memory.emplace(helpers::PatternFinder{ linux_platform::getCodeSection(clientSo.getView()) }, helpers::PatternFinder{ linux_platform::getCodeSection(engineSo.getView()) }, clientInterfaces->client, *retSpoofGadgets);
-
-        Netvars::init(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getClient());
-        gameEventListener.emplace(getEngineInterfaces().getGameEventManager(memory->getEventDescriptor));
-
         ImGui::CreateContext();
-
-        randomGenerator.emplace();
-        features.emplace(createFeatures(*memory, ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), helpers::PatternFinder{ linux_platform::getCodeSection(clientSo.getView()) }, helpers::PatternFinder{ linux_platform::getCodeSection(engineSo.getView()) }, *randomGenerator));
-        config.emplace(features->misc, features->inventoryChanger, features->glow, features->backtrack, features->visuals, getOtherInterfaces(), *memory);
-        
-        gui.emplace();
-        hooks->install(clientInterfaces->client, getEngineInterfaces(), getOtherInterfaces(), *memory);
-
+        initialize();
         state = GlobalContext::State::Initialized;
     }
     
@@ -555,16 +198,16 @@ void GlobalContext::fireGameEventCallback(csgo::GameEventPOD* eventPointer)
         features->misc.preserveKillfeed(true);
         [[fallthrough]];
     case fnv::hash(csgo::round_freeze_end):
-        features->misc.purchaseList(getEngineInterfaces().getEngine(), &event);
+        features->misc.purchaseList(&event);
         break;
     case fnv::hash(csgo::player_death):
         features->inventoryChanger.updateStatTrak(event);
         features->inventoryChanger.overrideHudIcon(*memory, event);
-        features->misc.killMessage(getEngineInterfaces().getEngine(), event);
-        features->misc.killSound(getEngineInterfaces().getEngine(), event);
+        features->misc.killMessage(event);
+        features->misc.killSound(event);
         break;
     case fnv::hash(csgo::player_hurt):
-        features->misc.playHitSound(getEngineInterfaces().getEngine(), event);
+        features->misc.playHitSound(event);
         features->visuals.hitEffect(&event);
         features->visuals.hitMarker(&event);
         break;
@@ -575,7 +218,7 @@ void GlobalContext::fireGameEventCallback(csgo::GameEventPOD* eventPointer)
         features->inventoryChanger.onRoundMVP(event);
         break;
     case fnv::hash(csgo::item_purchase):
-        features->misc.purchaseList(getEngineInterfaces().getEngine(), &event);
+        features->misc.purchaseList(&event);
         break;
     case fnv::hash(csgo::bullet_impact):
         features->visuals.bulletTracer(event);
@@ -589,10 +232,10 @@ void GlobalContext::renderFrame()
 
     if (const auto& displaySize = ImGui::GetIO().DisplaySize; displaySize.x > 0.0f && displaySize.y > 0.0f) {
         StreamProofESP::render(*memory, *config);
-        features->misc.purchaseList(getEngineInterfaces().getEngine());
+        features->misc.purchaseList();
         features->misc.noscopeCrosshair(ImGui::GetBackgroundDrawList());
         features->misc.recoilCrosshair(ImGui::GetBackgroundDrawList());
-        features->misc.drawOffscreenEnemies(getEngineInterfaces().getEngine(), ImGui::GetBackgroundDrawList());
+        features->misc.drawOffscreenEnemies(ImGui::GetBackgroundDrawList());
         features->misc.drawBombTimer();
         features->misc.spectatorList();
         features->visuals.hitMarker(nullptr, ImGui::GetBackgroundDrawList());
@@ -610,9 +253,34 @@ void GlobalContext::renderFrame()
         gui->handleToggle(features->misc, getOtherInterfaces());
 
         if (gui->isOpen())
-            gui->render(features->misc, features->inventoryChanger, features->glow, features->backtrack, features->visuals, getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *memory, *config);
+            gui->render(getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *memory, *config);
     }
 
     ImGui::EndFrame();
     ImGui::Render();
+}
+
+void GlobalContext::initialize()
+{
+    const DynamicLibrary<DynamicLibraryWrapper> clientSo{ DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
+    clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientSo.getView(), retSpoofGadgets->client } });
+    const DynamicLibrary<DynamicLibraryWrapper> engineSo{ DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
+    engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineSo.getView(), retSpoofGadgets->client } });
+
+    interfaces.emplace();
+    PatternNotFoundHandler patternNotFoundHandler;
+    const PatternFinder clientPatternFinder{ getCodeSection(clientSo.getView()), patternNotFoundHandler };
+    const PatternFinder enginePatternFinder{ getCodeSection(engineSo.getView()), patternNotFoundHandler };
+
+    memory.emplace(clientPatternFinder, enginePatternFinder, clientInterfaces->client, *retSpoofGadgets);
+
+    Netvars::init(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getClient());
+    gameEventListener.emplace(getEngineInterfaces().getGameEventManager(memory->getEventDescriptor));
+
+    randomGenerator.emplace();
+    features.emplace(createFeatures(*memory, ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), clientPatternFinder, enginePatternFinder, *randomGenerator));
+    config.emplace(*features, getOtherInterfaces(), *memory);
+    
+    gui.emplace();
+    hooks->install(clientInterfaces->client, getEngineInterfaces(), getOtherInterfaces(), *memory);
 }

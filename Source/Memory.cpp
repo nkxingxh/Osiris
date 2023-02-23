@@ -39,7 +39,7 @@
 #include <MemorySearch/PatternFinder.h>
 #include "Utils/SafeAddress.h"
 
-Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
+Memory::Memory(const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
 #if IS_WIN32()
     : lineGoesThroughSmoke{ retSpoofGadgets.client, clientPatternFinder("E8 ? ? ? ? 8B 4C 24 30 33 D2"_pat).add(1).relativeToAbsolute().get() },
       weaponSystem{ retSpoofGadgets.client, clientPatternFinder("8B 35 ? ? ? ? FF 10 0F B7 C0"_pat).add(2).deref().get() },
@@ -57,9 +57,12 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
 #if IS_WIN32()
     const windows_platform::DynamicLibrary gameOverlayRenderer{ windows_platform::DynamicLibraryWrapper{}, "gameoverlayrenderer" };
 
-    present = helpers::PatternFinder{ getCodeSection(gameOverlayRenderer.getView()) }("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
-    reset = helpers::PatternFinder{ getCodeSection(gameOverlayRenderer.getView()) }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
+    PatternNotFoundHandler patternNotFoundHandler;
+    present = PatternFinder{ getCodeSection(gameOverlayRenderer.getView()), patternNotFoundHandler }("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
+    reset = PatternFinder{ getCodeSection(gameOverlayRenderer.getView()), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
 
+    soundMessages = enginePatternFinder("74 3D 8B 0D ? ? ? ? 56"_pat).add(4).deref().add(-4).as<decltype(soundMessages)>();
+    splitScreen = enginePatternFinder("79 23 A1"_pat).add(3).deref().as<csgo::SplitScreen*>();
     clientMode = **reinterpret_cast<csgo::ClientMode***>((*reinterpret_cast<uintptr_t**>(clientInterface))[10] + 5);
     input = *reinterpret_cast<csgo::Input**>((*reinterpret_cast<uintptr_t**>(clientInterface))[16] + 1);
     globalVars = **reinterpret_cast<csgo::GlobalVars***>((*reinterpret_cast<uintptr_t**>(clientInterface))[11] + 10);
@@ -70,7 +73,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     clearHudWeapon = clientPatternFinder("E8 ? ? ? ? 8B F0 C6 44 24 ? ? C6 44 24"_pat).add(1).relativeToAbsolute().as<decltype(clearHudWeapon)>();
     itemSystemFn = clientPatternFinder("E8 ? ? ? ? 0F B7 0F"_pat).add(1).relativeToAbsolute().as<decltype(itemSystemFn)>();
     setAbsOrigin = clientPatternFinder("E8 ? ? ? ? EB 19 8B 07"_pat).add(1).relativeToAbsolute().as<decltype(setAbsOrigin)>();
-    dispatchSound = enginePatternFinder("74 0B E8 ? ? ? ? 8B 3D"_pat).add(3).as<int*>();
     traceToExit = clientPatternFinder("55 8B EC 83 EC 4C F3 0F 10 75"_pat).get();
     viewRender = clientPatternFinder("8B 0D ? ? ? ? FF 75 0C 8B 45 08"_pat).add(2).deref<2>().as<csgo::ViewRender*>();
     drawScreenEffectMaterial = clientPatternFinder("E8 ? ? ? ? 83 C4 0C 8D 4D F8"_pat).add(1).relativeToAbsolute().get();
@@ -82,9 +84,6 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     predictionRandomSeed = clientPatternFinder("8B 0D ? ? ? ? BA ? ? ? ? E8 ? ? ? ? 83 C4 04"_pat).add(2).deref().as<int*>();
     moveData = clientPatternFinder("A1 ? ? ? ? F3 0F 59 CD"_pat).add(1).deref<2>().as<csgo::MoveData*>();
     moveHelperPtr = clientPatternFinder("8B 0D ? ? ? ? 8B 45 ? 51 8B D4 89 02 8B 01"_pat).add(2).deref<2>().as<csgo::MoveHelperPOD*>();
-    keyValuesFromString = clientPatternFinder("E8 ? ? ? ? 83 C4 04 89 45 D8"_pat).add(1).relativeToAbsolute().get();
-    keyValuesFindKey = clientPatternFinder("E8 ? ? ? ? F7 45"_pat).add(1).relativeToAbsolute().as<decltype(keyValuesFindKey)>();
-    keyValuesSetString = clientPatternFinder("E8 ? ? ? ? 89 77 38"_pat).add(1).relativeToAbsolute().as<decltype(keyValuesSetString)>();
     getEventDescriptor = enginePatternFinder("E8 ? ? ? ? 8B D8 85 DB 75 27"_pat).add(1).relativeToAbsolute().as<csgo::GetEventDescriptor>();
     activeChannels = enginePatternFinder("8B 1D ? ? ? ? 89 5C 24 48"_pat).add(2).deref().as<csgo::ActiveChannels*>();
     channels = enginePatternFinder("81 C2 ? ? ? ? 8B 72 54"_pat).add(2).deref().as<csgo::Channel*>();
@@ -110,6 +109,9 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     conColorMsg = decltype(conColorMsg)(dlsym(tier0, "_Z11ConColorMsgRK5ColorPKcz"));
     dlclose(tier0);
 
+    soundMessages = enginePatternFinder("41 5C 5D E9 ? ? ? ? 8B 48 08"_pat).add(-4).relativeToAbsolute().as<decltype(soundMessages)>();
+    splitScreen = enginePatternFinder("C6 05 ? ? ? ? ? 48 89 05 ? ? ? ? 0F 84"_pat).add(10).relativeToAbsolute().as<csgo::SplitScreen*>();
+
     globalVars = SafeAddress{ (*reinterpret_cast<std::uintptr_t**>(clientInterface))[11] + 16 }.relativeToAbsolute().deref().as<csgo::GlobalVars*>();
     itemSystemFn = clientPatternFinder("E8 ? ? ? ? 44 39 78 44"_pat).add(1).relativeToAbsolute().as<decltype(itemSystemFn)>();
 
@@ -120,23 +122,19 @@ Memory::Memory(const helpers::PatternFinder& clientPatternFinder, const helpers:
     findHudElement = clientPatternFinder("E8 ? ? ? ? 48 8D 50 E0"_pat).add(1).relativeToAbsolute().as<decltype(findHudElement)>();
 
     clientMode = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[10] }.add(12).relativeToAbsolute().add(4).relativeToAbsolute().deref().as<decltype(clientMode)>();
-    input = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[16] }.add(3).relativeToAbsolute().deref<2>().as<csgo::Input*>();
+    input = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[16] }.add(3).relativeToAbsolute().deref().as<csgo::Input*>();
     playerResource = clientPatternFinder("48 8B 15 ? ? ? ? 48 63 C3"_pat).add(3).relativeToAbsolute().as<csgo::PlayerResource**>();
 
     getEventDescriptor = enginePatternFinder("E8 ? ? ? ? 4D 85 F6 74 09"_pat).add(1).relativeToAbsolute().as<csgo::GetEventDescriptor>();
     activeChannels = enginePatternFinder("48 8D 3D ? ? ? ? 48 89 DE E8 ? ? ? ? 8B BD"_pat).add(3).relativeToAbsolute().as<csgo::ActiveChannels*>();
     channels = enginePatternFinder("48 8D 3D ? ? ? ? 48 0F BF 10"_pat).add(3).relativeToAbsolute().as<csgo::Channel*>();
-    keyValuesFromString = clientPatternFinder("E8 ? ? ? ? 48 89 DF 48 89 45 E0"_pat).add(1).relativeToAbsolute().get();
-    keyValuesFindKey = clientPatternFinder("E8 ? ? ? ? 48 85 C0 75 1E"_pat).add(1).relativeToAbsolute().as<decltype(keyValuesFindKey)>();
-    keyValuesSetString = clientPatternFinder("E8 ? ? ? ? 48 89 DE 4C 89 FF E8 ? ? ? ? 49 8B 04 24"_pat).add(1).relativeToAbsolute().as<decltype(keyValuesSetString)>();
     // drawScreenEffectMaterial = clientPatternFinder("\x55\x48\x89\xE5\x41\x57\x41\x56\x45\x89\xC6\x41\x55\x41\x54\x53").get();
     viewRender = clientPatternFinder("0F 85 ? ? ? ? 48 8D 05 ? ? ? ? 45 89 F8"_pat).add(9).relativeToAbsolute().deref().as<csgo::ViewRender*>();
     clearHudWeapon = clientPatternFinder("E8 ? ? ? ? C6 45 AE 01"_pat).add(1).relativeToAbsolute().as<decltype(clearHudWeapon)>();
     equipWearable = clientPatternFinder("55 48 8D 15 ? ? ? ? 48 89 E5 41 56 41 55 41 54 49 89 F4 53 48 8B 07"_pat).as<decltype(equipWearable)>();
     setAbsOrigin = clientPatternFinder("E8 ? ? ? ? 4D 63 B5"_pat).add(1).relativeToAbsolute().as<decltype(setAbsOrigin)>();
     plantedC4s = clientPatternFinder("48 8D 3D ? ? ? ? 42 C6 44 28"_pat).add(3).relativeToAbsolute().as<decltype(plantedC4s)>();
-    gameRules = clientPatternFinder("48 8D 1D ? ? ? ? 48 8B 3B 48 85 FF 74 06"_pat).add(3).relativeToAbsolute().deref().as<csgo::EntityPOD**>();
-    dispatchSound = enginePatternFinder("74 10 E8 ? ? ? ? 48 8B 35"_pat).add(3).as<int*>();
+    gameRules = clientPatternFinder("48 8D 1D ? ? ? ? 48 8B 3B 48 85 FF 74 06"_pat).add(3).relativeToAbsolute().as<csgo::EntityPOD**>();
     predictionRandomSeed = clientPatternFinder("41 8D 56 FF 31 C9"_pat).add(-14).relativeToAbsolute().as<int*>();
     registeredPanoramaEvents = clientPatternFinder("E8 ? ? ? ? 44 0F B7 9D"_pat).add(1).relativeToAbsolute().add(12).relativeToAbsolute().as<decltype(registeredPanoramaEvents)>();
     moveData = clientPatternFinder("48 8D 0D ? ? ? ? 48 89 DE 4C 89 FF"_pat).add(3).relativeToAbsolute().deref().as<csgo::MoveData*>();

@@ -1,10 +1,24 @@
 #pragma once
 
-#include "../Memory.h"
+#include "Helpers/KeyValuesFunctions.h"
+#include "VirtualMethod.h"
 
-class KeyValues {
-public:
-    static KeyValues* fromString(const Memory& memory, const char* name, const char* value) noexcept;
-    KeyValues* findKey(const Memory& memory, const char* keyName, bool create) noexcept;
-    void setString(const Memory& memory, const char* keyName, const char* value) noexcept;
+namespace csgo
+{
+
+struct KeyValuesPOD;
+
+struct KeyValues : VirtualCallableFromPOD<KeyValues, KeyValuesPOD> {
+    KeyValues(VirtualCallableFromPOD base, KeyValuesFunctions functions)
+    : VirtualCallableFromPOD{ base }, functions{ functions }
+    {
+    }
+
+    KeyValuesPOD* findKey(const char* keyName, bool create) const noexcept;
+    void setString(const char* keyName, const char* value) const noexcept;
+
+private:
+    KeyValuesFunctions functions;
 };
+
+}

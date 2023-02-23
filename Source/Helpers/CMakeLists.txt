@@ -1,3 +1,4 @@
 target_sources(OsirisOBJ PRIVATE
-  PatternFinder.cpp
+  KeyValuesFactory.cpp
+  PatternNotFoundHandler.cpp
 )

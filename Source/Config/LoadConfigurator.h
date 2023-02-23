@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <type_traits>
 
 #include <JsonForward.h>
@@ -23,25 +24,60 @@ constexpr bool jsonValueTypeMatchesType(json::value_t valueType) noexcept
 
 template <typename T>
 struct LoadHandler {
-    LoadHandler(const char* name, T& variable, const json& j)
-        : name{ name }, variable{ variable }, j{ j }
+    LoadHandler(const json* j, T& variable)
+        : j{ j }, variable{ variable }
     {
     }
 
-    void def([[maybe_unused]] const T& defaultValue) const noexcept
+    LoadHandler& def(const T& /* defaultValue */) noexcept
     {
+        return *this;
+    }
+
+    template <typename Functor>
+    LoadHandler& loadString(Functor&& functor)
+    {
+        if (j && j->is_string()) {
+            functor(j->get<std::string>());
+            loaded = true;
+        }
+        return *this;
+    }
+
+    template <typename Functor>
+    LoadHandler& save(Functor&&)
+    {
+        return *this;
     }
 
     ~LoadHandler() noexcept
     {
-        if (const auto it = j.find(name); it != j.end() && jsonValueTypeMatchesType<T>(it->type()))
-            it->get_to(variable);
+        if (!loaded && j && jsonValueTypeMatchesType<T>(j->type()))
+            j->get_to(variable);
     }
 
 private:
-    const char* name;
     T& variable;
-    const json& j;
+    const json* j;
+    bool loaded = false;
+};
+
+template <typename T, std::size_t N>
+struct LoadHandler<std::array<T, N>> {
+    LoadHandler(const json* j, std::array<T, N>& variable)
+        : j{ j }, variable{ variable }
+    {
+    }
+
+    void def(const std::array<T, N>& /*defaultValue*/) const noexcept
+    {
+    }
+
+    ~LoadHandler() noexcept;
+
+private:
+    const json* j;
+    std::array<T, N>& variable;
 };
 
 struct LoadConfigurator {
@@ -53,17 +89,35 @@ struct LoadConfigurator {
     template <typename T>
     auto operator()(const char* name, T& variable)
     {
-        if constexpr (std::is_class_v<T>) {
-            static_assert(Configurable<T, LoadConfigurator>, "Class type T must be configurable!");
+        if constexpr (Configurable<T, LoadConfigurator>) {
             if (const auto it = j.find(name); it != j.end() && it->is_object()) {
                 LoadConfigurator configurator{ *it };
                 variable.configure(configurator);
             }
         } else {
-            return LoadHandler<T>{ name, variable, j };
+            if (const auto it = j.find(name); it != j.end())
+                return LoadHandler<T>{ std::to_address(it), variable };
+            return LoadHandler<T>{ nullptr, variable };
         }
     }
 
 private:
     const json& j;
 };
+
+template <typename T, std::size_t N>
+LoadHandler<std::array<T, N>>::~LoadHandler() noexcept
+{
+    if (j && j->is_array() && j->size() == N) {
+        std::size_t index = 0;
+        for (const auto& element : *j) {
+            if constexpr (Configurable<T, LoadConfigurator>) {
+                LoadConfigurator configurator{ element };
+                variable[index].configure(configurator);
+            } else {
+                LoadHandler<T>{ &element, variable[index] };
+            }
+            ++index;
+        }
+    }
+}

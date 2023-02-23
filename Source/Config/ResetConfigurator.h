@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <type_traits>
 
 #include "Configurable.h"
@@ -11,10 +12,23 @@ struct ResetHandler {
     {
     }
 
-    void def(const T& defaultValue)
+    ResetHandler& def(const T& defaultValue)
     {
         variable = defaultValue;
         resetToDefaultConstructed = false;
+        return *this;
+    }
+
+    template <typename Functor>
+    ResetHandler& loadString(Functor&&)
+    {
+        return *this;
+    }
+
+    template <typename Functor>
+    ResetHandler& save(Functor&&)
+    {
+        return *this;
     }
 
     ~ResetHandler() noexcept
@@ -28,12 +42,24 @@ private:
     bool resetToDefaultConstructed = true;
 };
 
+template <typename T, std::size_t N>
+struct ResetHandler<std::array<T, N>> {
+    explicit ResetHandler(std::array<T, N>& variable)
+        : variable{ variable }
+    {
+    }
+
+    ~ResetHandler() noexcept;
+
+private:
+    std::array<T, N>& variable;
+};
+
 struct ResetConfigurator {
     template <typename T>
     auto operator()([[maybe_unused]] const char* name, T& variable)
     {
-        if constexpr (std::is_class_v<T>) {
-            static_assert(Configurable<T, ResetConfigurator>, "Class type T must be configurable!");
+        if constexpr (Configurable<T, ResetConfigurator>) {
             ResetConfigurator configurator;
             variable.configure(configurator);
         } else {
@@ -41,3 +67,16 @@ struct ResetConfigurator {
         }
     }
 };
+
+template <typename T, std::size_t N>
+ResetHandler<std::array<T, N>>::~ResetHandler() noexcept
+{
+    for (auto& element : variable) {
+        if constexpr (Configurable<T, ResetConfigurator>) {
+            ResetConfigurator configurator;
+            element.configure(configurator);
+        } else {
+            element = T{};
+        }
+    }
+}

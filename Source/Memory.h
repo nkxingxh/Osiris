@@ -8,12 +8,15 @@
 #include "CSGO/Functions.h"
 #include "CSGO/ItemSchema.h"
 #include "CSGO/MoveHelper.h"
+#include "CSGO/SoundInfo.h"
+#include "CSGO/SplitScreen.h"
+#include "CSGO/UtlRbTree.h"
 #include "CSGO/WeaponSystem.h"
 
 #include "Utils/ReturnAddress.h"
 #include "Utils/SafeAddress.h"
 #include "RetSpoof/RetSpoofGadgets.h"
-#include "Helpers/PatternFinder.h"
+#include "MemorySearch/PatternFinder.h"
 #include "Utils/TypeHint.h"
 
 #include "Platform/Macros/CallingConventions.h"
@@ -61,17 +64,20 @@ namespace csgo
 {
     struct ItemSystemPOD;
     struct MemAllocPOD;
+    struct KeyValuesPOD;
 }
 
 class Memory {
 public:
-    Memory(const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
+    Memory(const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
 
 #if IS_WIN32()
     std::uintptr_t present;
     std::uintptr_t reset;
 #endif
 
+    csgo::UtlRbTree<csgo::SoundInfo, int>* soundMessages;
+    csgo::SplitScreen* splitScreen;
     csgo::MemAllocPOD* memAlloc;
     csgo::ClientMode* clientMode;
     csgo::Input* input;
@@ -85,7 +91,6 @@ public:
     int*(THISCALL_CONV* findHudElement)(std::uintptr_t, const char*);
     int(THISCALL_CONV* clearHudWeapon)(int*, int);
     void(THISCALL_CONV* setAbsOrigin)(std::uintptr_t, const csgo::Vector&);
-    int* dispatchSound;
     std::uintptr_t traceToExit;
     csgo::ViewRender* viewRender;
     std::uintptr_t drawScreenEffectMaterial;
@@ -94,9 +99,6 @@ public:
     int(THISCALL_CONV* equipWearable)(csgo::EntityPOD* wearable, csgo::EntityPOD* player);
     int* predictionRandomSeed;
     csgo::MoveData* moveData;
-    std::uintptr_t keyValuesFromString;
-    KeyValues*(THISCALL_CONV* keyValuesFindKey)(KeyValues* keyValues, const char* keyName, bool create);
-    void(THISCALL_CONV* keyValuesSetString)(KeyValues* keyValues, const char* value);
     csgo::WeaponSystem weaponSystem;
     csgo::GetEventDescriptor getEventDescriptor;
     csgo::ActiveChannels* activeChannels;

@@ -1,16 +1,13 @@
 #pragma once
 
 #include <Endpoints.h>
+#include <HookType.h>
 #include <Platform/Macros/CallingConventions.h>
 #include <Platform/Macros/PlatformSpecific.h>
 #include <RetSpoof/FunctionInvoker.h>
 
 namespace csgo { struct ViewRender; }
 
-void FASTCALL_CONV render2dEffectsPreHud(FASTCALL_THIS(csgo::ViewRender* thisptr), void* viewSetup) noexcept;
-void FASTCALL_CONV renderSmokeOverlay(FASTCALL_THIS(csgo::ViewRender* thisptr), bool update) noexcept;
-
-template <typename HookImpl>
 class ViewRenderHooks {
 public:
     void install(csgo::ViewRender* viewRender)
@@ -34,9 +31,12 @@ public:
     {
         return FunctionInvoker{ retSpoofGadgets->client, originalRenderSmokeOverlay };
     }
+    
+    static void FASTCALL_CONV render2dEffectsPreHud(FASTCALL_THIS(csgo::ViewRender* thisptr), void* viewSetup) noexcept;
+    static void FASTCALL_CONV renderSmokeOverlay(FASTCALL_THIS(csgo::ViewRender* thisptr), bool update) noexcept;
 
 private:
-    HookImpl hookImpl;
+    HookType hookImpl;
 
     void (THISCALL_CONV* originalRender2dEffectsPreHud)(csgo::ViewRender* thisptr, void* viewSetup);
     void (THISCALL_CONV* originalRenderSmokeOverlay)(csgo::ViewRender* thisptr, bool preViewModel);

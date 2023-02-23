@@ -1,15 +1,13 @@
 #pragma once
 
 #include <Endpoints.h>
+#include <HookType.h>
 #include <Platform/Macros/CallingConventions.h>
 #include <Platform/Macros/PlatformSpecific.h>
 #include <RetSpoof/FunctionInvoker.h>
 
 namespace csgo { struct KeyValuesSystemPOD; }
 
-void* FASTCALL_CONV allocKeyValuesMemory(FASTCALL_THIS(csgo::KeyValuesSystemPOD* thisptr), int size) noexcept;
-
-template <typename HookImpl>
 class KeyValuesSystemHooks {
 public:
     void install(csgo::KeyValuesSystemPOD* keyValuesSystem)
@@ -28,8 +26,10 @@ public:
         return FunctionInvoker{ retSpoofGadgets->client, originalAllocKeyValuesMemory };
     }
 
+    static void* FASTCALL_CONV allocKeyValuesMemory(FASTCALL_THIS(csgo::KeyValuesSystemPOD* thisptr), int size) noexcept;
+
 private:
-    HookImpl hookImpl;
+    HookType hookImpl;
 
     void* (THISCALL_CONV* originalAllocKeyValuesMemory)(csgo::KeyValuesSystemPOD* thisptr, int size);
 };

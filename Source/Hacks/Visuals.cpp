@@ -704,6 +704,10 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     ImGui::SliderFloat("", &visualsConfig.brightness, 0.0f, 1.0f, "亮度: %.2f");
     ImGui::PopID();
     ImGui::PopItemWidth();
+    ImGui::PushID(6);
+    ImGui::Checkbox("", &skyboxChanger.enabled);
+    ImGui::PopID();
+    ImGui::SameLine();
     ImGui::Combo("Skybox", &skyboxChanger.skybox, SkyboxChanger::skyboxList.data(), SkyboxChanger::skyboxList.size());
     ImGuiCustom::colorPicker("World color", visualsConfig.world);
     ImGuiCustom::colorPicker("Sky color", visualsConfig.sky);
@@ -750,11 +754,6 @@ json Visuals::toJson() noexcept
     if (const auto saveJson = saveConfigurator.getJson(); saveJson.is_object())
         j.update(saveJson);
 
-    // temporary, until skyboxChanger is saved as a json object
-    SaveConfigurator skyboxChangerConfigurator;
-    skyboxChanger.configure(skyboxChangerConfigurator);
-    if (const auto skyboxJson = skyboxChangerConfigurator.getJson(); skyboxJson.is_object())
-        j.update(skyboxJson);
     return j;
 }
 
@@ -763,7 +762,6 @@ void Visuals::fromJson(const json& j) noexcept
     from_json(j, visualsConfig);
 
     LoadConfigurator configurator{ j };
-    skyboxChanger.configure(configurator);
     configure(configurator);
 }
 
@@ -772,6 +770,4 @@ void Visuals::resetConfig() noexcept
     visualsConfig = {};
     ResetConfigurator resetConfigurator;
     configure(resetConfigurator);
-
-    skyboxChanger.configure(resetConfigurator);
 }

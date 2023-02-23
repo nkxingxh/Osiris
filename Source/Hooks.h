@@ -21,6 +21,7 @@ union SDL_Event;
 #include "Memory.h"
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hooks/ClientHooks.h"
+#include "Hooks/ClientStateHooks.h"
 #include "Hooks/ClientModeHooks.h"
 #include "Hooks/EngineHooks.h"
 #include "Hooks/PanoramaMarshallHelperHooks.h"
@@ -37,6 +38,8 @@ union SDL_Event;
 #include "Hooks/KeyValuesSystemHooks.h"
 #endif
 
+#include "HookType.h"
+
 namespace csgo
 {
 
@@ -52,13 +55,6 @@ class OtherInterfaces;
 class Glow;
 class Visuals;
 class Misc;
-
-#if IS_WIN32()
-// Easily switch hooking method for all hooks, choose between MinHook/VmtHook/VmtSwap
-using HookType = MinHook;
-#else
-using HookType = VmtSwap;
-#endif
 
 class Hooks {
 public:
@@ -78,26 +74,25 @@ public:
 #endif
 
     void install(csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept;
-    void uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
-
-    std::add_pointer_t<int FASTCALL_CONV(csgo::SoundInfo&)> originalDispatchSound;
+    void uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
 
 #if IS_WIN32()
-    KeyValuesSystemHooks<HookType> keyValuesSystemHooks;
+    KeyValuesSystemHooks keyValuesSystemHooks;
 #endif
 
-    EngineHooks<HookType> engineHooks;
-    ClientHooks<HookType> clientHooks;
-    ClientModeHooks<HookType> clientModeHooks;
-    CSPlayerInventoryHooks<HookType> playerInventoryHooks;
-    PanoramaMarshallHelperHooks<HookType> panoramaMarshallHelperHooks;
-    ViewRenderHooks<HookType> viewRenderHooks;
-    InventoryManagerHooks<HookType> inventoryManagerHooks;
-    BspQueryHooks<HookType> bspQueryHooks;
-    EngineSoundHooks<HookType> engineSoundHooks;
-    SvCheatsHooks<HookType> svCheatsHooks;
-    ModelRenderHooks<HookType> modelRenderHooks;
-    SurfaceHooks<HookType> surfaceHooks;
+    EngineHooks engineHooks;
+    ClientHooks clientHooks;
+    ClientModeHooks clientModeHooks;
+    ClientStateHooks clientStateHooks;
+    CSPlayerInventoryHooks playerInventoryHooks;
+    PanoramaMarshallHelperHooks panoramaMarshallHelperHooks;
+    ViewRenderHooks viewRenderHooks;
+    InventoryManagerHooks inventoryManagerHooks;
+    BspQueryHooks bspQueryHooks;
+    EngineSoundHooks engineSoundHooks;
+    SvCheatsHooks svCheatsHooks;
+    ModelRenderHooks modelRenderHooks;
+    SurfaceHooks surfaceHooks;
 
 private:
 #if IS_WIN32()
