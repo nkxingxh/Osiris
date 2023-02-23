@@ -1355,11 +1355,11 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::SetColumnOffset(1, 230.0f);
     ImGui::hotkey("切出菜单", miscConfig.menuKey);
     ImGui::Checkbox("防止AFK踢出", &miscConfig.antiAfkKick);
-    ImGui::Checkbox("Auto strafe", &miscConfig.autoStrafe);
-    ImGui::Checkbox("Bunny hop", &miscConfig.bunnyHop);
-    ImGui::Checkbox("Fast duck", &miscConfig.fastDuck);
-    ImGui::Checkbox("Moonwalk", &miscConfig.moonwalk);
-    ImGui::Checkbox("Edge Jump", &miscConfig.edgejump);
+    ImGui::Checkbox("自动扫射 (Auto strafe)", &miscConfig.autoStrafe);
+    ImGui::Checkbox("兔子跳", &miscConfig.bunnyHop);
+    ImGui::Checkbox("快速下蹲 (Fast duck)", &miscConfig.fastDuck);
+    ImGui::Checkbox("滑步 (Moonwalk)", &miscConfig.moonwalk);
+    ImGui::Checkbox("边缘跳跃 (Edge Jump)", &miscConfig.edgejump);
     ImGui::SameLine();
     ImGui::PushID("Edge Jump Key");
     ImGui::hotkey("", miscConfig.edgejumpkey);
@@ -1371,16 +1371,16 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::PopID();
     ImGuiCustom::colorPicker("Noscope crosshair", miscConfig.noscopeCrosshair);
     ImGuiCustom::colorPicker("Recoil crosshair", miscConfig.recoilCrosshair);
-    ImGui::Checkbox("Auto pistol", &miscConfig.autoPistol);
-    ImGui::Checkbox("Auto reload", &miscConfig.autoReload);
-    ImGui::Checkbox("Auto accept", &miscConfig.autoAccept);
+    ImGui::Checkbox("自动手枪 (Auto pistol)", &miscConfig.autoPistol);
+    ImGui::Checkbox("自动装弹 (Auto reload)", &miscConfig.autoReload);
+    ImGui::Checkbox("自动接受 (Auto accept)", &miscConfig.autoAccept);
     ImGui::Checkbox("雷达黑客", &miscConfig.radarHack);
-    ImGui::Checkbox("Reveal ranks", &miscConfig.revealRanks);
-    ImGui::Checkbox("Reveal money", &miscConfig.revealMoney);
-    ImGui::Checkbox("Reveal suspect", &miscConfig.revealSuspect);
-    ImGui::Checkbox("Reveal votes", &miscConfig.revealVotes);
+    ImGui::Checkbox("显示排位 (Reveal ranks)", &miscConfig.revealRanks);
+    ImGui::Checkbox("显示金钱 (Reveal money)", &miscConfig.revealMoney);
+    ImGui::Checkbox("显示嫌疑人 (Reveal suspect)", &miscConfig.revealSuspect);
+    ImGui::Checkbox("显示投票 (Reveal votes)", &miscConfig.revealVotes);
 
-    ImGui::Checkbox("Spectator list", &miscConfig.spectatorList.enabled);
+    ImGui::Checkbox("观众名单 (Spectator list)", &miscConfig.spectatorList.enabled);
     ImGui::SameLine();
 
     ImGui::PushID("Spectator list");
@@ -1417,7 +1417,7 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::Checkbox("Disable model occlusion", &miscConfig.disableModelOcclusion);
     ImGui::SliderFloat("Aspect Ratio", &miscConfig.aspectratio, 0.0f, 5.0f, "%.2f");
     ImGui::NextColumn();
-    ImGui::Checkbox("Disable HUD blur", &miscConfig.disablePanoramablur);
+    ImGui::Checkbox("禁用 HUD 模糊", &miscConfig.disablePanoramablur);
     ImGui::Checkbox("动画战队标签", &miscConfig.animatedClanTag);
     ImGui::Checkbox("时钟标签", &miscConfig.clocktag);
     ImGui::Checkbox("自定义战队标签", &miscConfig.customClanTag);
@@ -1449,8 +1449,8 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::Checkbox("快速下包", &miscConfig.fastPlant);
     ImGui::Checkbox("急停", &miscConfig.fastStop);
     ImGuiCustom::colorPicker("炸弹计时器", miscConfig.bombTimer);
-    ImGui::Checkbox("Quick reload", &miscConfig.quickReload);
-    ImGui::Checkbox("Prepare revolver", &miscConfig.prepareRevolver);
+    ImGui::Checkbox("快速换弹", &miscConfig.quickReload);
+    ImGui::Checkbox("左轮预热 (Prepare revolver)", &miscConfig.prepareRevolver);
     ImGui::SameLine();
     ImGui::PushID("Prepare revolver Key");
     ImGui::hotkey("", miscConfig.prepareRevolverKey);
@@ -1469,7 +1469,7 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
             ImGui::SetTooltip("audio file must be put in csgo/sound/ directory");
     }
     ImGui::PopID();
-    ImGui::Checkbox("Grenade Prediction", &miscConfig.nadePredict);
+    ImGui::Checkbox("抛物线 (Grenade Prediction)", &miscConfig.nadePredict);
     ImGui::Checkbox("Fix tablet signal", &miscConfig.fixTabletSignal);
     ImGui::SetNextItemWidth(120.0f);
     ImGui::SliderFloat("Max angle delta", &miscConfig.maxAngleDelta, 0.0f, 255.0f, "%.2f");
@@ -1534,6 +1534,7 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
         hooks->uninstall(*this, glow, memory, visuals, inventoryChanger);
 
     ImGui::Text("Osiris-CHS 由 NKXingXh 汉化");
+    ImGui::Text("https://github.com/nkxingxh/Osiris-CHS");
 
     ImGui::Columns(1);
     if (!contentOnly)
