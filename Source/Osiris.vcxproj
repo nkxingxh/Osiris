@@ -138,6 +138,8 @@
     <ClCompile Include="imguiCustom.cpp" />
     <ClCompile Include="InputUtil.cpp" />
     <ClCompile Include="InventoryChanger\Backend\Request\RequestHandler.cpp" />
+    <ClCompile Include="InventoryChanger\EconItemFunctions.cpp" />
+    <ClCompile Include="InventoryChanger\EconItemViewFunctions.cpp" />
     <ClCompile Include="InventoryChanger\GameIntegration\CrateLoot.cpp" />
     <ClCompile Include="InventoryChanger\GameIntegration\Inventory.cpp" />
     <ClCompile Include="InventoryChanger\GameIntegration\Items.cpp" />
@@ -296,6 +298,9 @@
     <ClInclude Include="Hacks\Aimbot.h" />
     <ClInclude Include="Hacks\Backtrack.h" />
     <ClInclude Include="Hacks\Chams.h" />
+    <ClInclude Include="Hacks\Chams\ChamsMaterial.h" />
+    <ClInclude Include="Hacks\Chams\ChamsMaterialFactory.h" />
+    <ClInclude Include="Hacks\Chams\ChamsMaterialKeyValuesFactory.h" />
     <ClInclude Include="Hacks\EnginePrediction.h" />
     <ClInclude Include="Hacks\Features.h" />
     <ClInclude Include="Hacks\Glow.h" />
@@ -515,7 +520,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>shell32.lib;ole32.lib</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;ntdll.lib;</AdditionalDependencies>
       <EntryPointSymbol>DllEntryPoint</EntryPointSymbol>
     </Link>
     <PostBuildEvent>
@@ -559,7 +564,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>shell32.lib;ole32.lib</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;ntdll.lib;</AdditionalDependencies>
       <EntryPointSymbol>DllEntryPoint</EntryPointSymbol>
     </Link>
     <PostBuildEvent>

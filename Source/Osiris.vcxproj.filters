@@ -99,6 +99,9 @@
     <Filter Include="MemorySearch">
       <UniqueIdentifier>{a463f11e-5e7b-40b4-b955-c60208980d86}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hacks\Chams">
+      <UniqueIdentifier>{4e0caedc-d0ab-48f2-8598-a22bbbc1bf6f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -349,6 +352,12 @@
     </ClCompile>
     <ClCompile Include="Helpers\KeyValuesFactory.cpp">
       <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="InventoryChanger\EconItemFunctions.cpp">
+      <Filter>InventoryChanger</Filter>
+    </ClCompile>
+    <ClCompile Include="InventoryChanger\EconItemViewFunctions.cpp">
+      <Filter>InventoryChanger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1143,6 +1152,15 @@
     </ClInclude>
     <ClInclude Include="CSGO\Helpers\KeyValuesFunctions.h">
       <Filter>CSGO\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterialKeyValuesFactory.h">
+      <Filter>Hacks\Chams</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterial.h">
+      <Filter>Hacks\Chams</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterialFactory.h">
+      <Filter>Hacks\Chams</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -431,8 +431,8 @@ void GUI::renderChamsWindow(Config& config, bool contentOnly) noexcept
         ImGui::Begin("上色", &window.chams, windowFlags);
     }
 
-    ImGui::hotkey("切换键", config.chamsToggleKey, 80.0f);
-    ImGui::hotkey("按住键", config.chamsHoldKey, 80.0f);
+    ImGui::hotkey("切换键", config.getFeatures().chams.toggleKey, 80.0f);
+    ImGui::hotkey("按住键", config.getFeatures().chams.holdKey, 80.0f);
     ImGui::Separator();
 
     static int currentCategory{ 0 };
@@ -455,29 +455,33 @@ void GUI::renderChamsWindow(Config& config, bool contentOnly) noexcept
 
     ImGui::SameLine();
     ImGui::Text("%d", material);
-
-    constexpr std::array categories{ "友军", "敌人", "安放中", "拆除中", "本地玩家", "武器", "手", "回溯", "袖子" };
-
     ImGui::SameLine();
 
-    if (material >= int(config.chams[categories[currentCategory]].materials.size()))
+    if (material >= int(config.getFeatures().chams.chamsMaterials[currentCategory].materials.size()))
         ImGuiCustom::arrowButtonDisabled("##right", ImGuiDir_Right);
     else if (ImGui::ArrowButton("##right", ImGuiDir_Right))
         ++material;
 
     ImGui::SameLine();
 
-    auto& chams{ config.chams[categories[currentCategory]].materials[material - 1] };
+    auto& chams{ config.getFeatures().chams.chamsMaterials[currentCategory].materials[material - 1] };
 
     ImGui::Checkbox("启用", &chams.enabled);
     ImGui::Separator();
     ImGui::Checkbox("基于血量", &chams.healthBased);
     ImGui::Checkbox("闪烁", &chams.blinking);
-    ImGui::Combo("材质", &chams.material, "Normal\0Flat\0Animated\0Platinum\0Glass\0Chrome\0Crystal\0Silver\0Gold\0Plastic\0Glow\0Pearlescent\0Metallic\0");
+
+    int material_ = static_cast<int>(chams.material);
+    ImGui::Combo("材质", &material_, [](void*, int idx, const char** out_text) {
+        *out_text = toString(static_cast<ChamsMaterial>(idx)).data();
+        return true;
+    }, nullptr, Chams::numberOfMaterials);
+    chams.material = static_cast<ChamsMaterial>(material_);
+
     ImGui::Checkbox("线框", &chams.wireframe);
     ImGui::Checkbox("Cover", &chams.cover);
     ImGui::Checkbox("Ignore-Z", &chams.ignorez);
-    ImGuiCustom::colorPicker("颜色", chams);
+    ImGuiCustom::colorPicker("颜色", chams.color);
 
     if (!contentOnly) {
         ImGui::End();
@@ -589,7 +593,7 @@ void GUI::renderConfigWindow(const OtherInterfaces& interfaces, const Memory& me
                     case 2: config.triggerbot = { }; break;
                     case 3: config.getFeatures().backtrack.configure(configurator); break;
                     case 4: config.getFeatures().glow.resetConfig(); break;
-                    case 5: config.chams = { }; break;
+                    case 5: config.getFeatures().chams.configure(configurator); break;
                     case 6: config.streamProofESP = { }; break;
                     case 7: config.getFeatures().visuals.resetConfig(); break;
                     case 8: config.getFeatures().inventoryChanger.reset(memory); config.getFeatures().inventoryChanger.scheduleHudUpdate(); break;
