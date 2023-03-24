@@ -17,8 +17,7 @@
 #include <Psapi.h>
 
 #include <Platform/Windows/DynamicLibrary.h>
-#include <Platform/Windows/DynamicLibrarySection.h>
-#include <Platform/Windows/DynamicLibraryWrapper.h>
+#include <Platform/Windows/PlatformApi.h>
 #elif IS_LINUX()
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -26,8 +25,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <Platform/Linux/DynamicLibrarySection.h>
 #endif
 
 #include "Memory.h"
@@ -55,11 +52,11 @@ Memory::Memory(const PatternFinder& clientPatternFinder, const PatternFinder& en
 #endif
 {
 #if IS_WIN32()
-    const windows_platform::DynamicLibrary gameOverlayRenderer{ windows_platform::DynamicLibraryWrapper{}, "gameoverlayrenderer" };
+    const windows_platform::DynamicLibrary gameOverlayRenderer{ windows_platform::PlatformApi{}, "gameoverlayrenderer.dll" };
 
     PatternNotFoundHandler patternNotFoundHandler;
-    present = PatternFinder{ getCodeSection(gameOverlayRenderer.getView()), patternNotFoundHandler }("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
-    reset = PatternFinder{ getCodeSection(gameOverlayRenderer.getView()), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
+    present = PatternFinder{ gameOverlayRenderer.getCodeSection(), patternNotFoundHandler }("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
+    reset = PatternFinder{ gameOverlayRenderer.getCodeSection(), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
 
     soundMessages = enginePatternFinder("74 3D 8B 0D ? ? ? ? 56"_pat).add(4).deref().add(-4).as<decltype(soundMessages)>();
     splitScreen = enginePatternFinder("79 23 A1"_pat).add(3).deref().as<csgo::SplitScreen*>();

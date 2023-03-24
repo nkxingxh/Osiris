@@ -3,13 +3,9 @@
 #if IS_WIN32()
 #include <imgui/imgui_impl_dx9.h>
 #include <imgui/imgui_impl_win32.h>
-
-#include "Platform/Windows/DynamicLibrarySection.h"
 #else
 #include <imgui/imgui_impl_sdl.h>
 #include <imgui/imgui_impl_opengl3.h>
-
-#include "Platform/Linux/DynamicLibrarySection.h"
 #endif
 
 #include "EventListener.h"
@@ -52,40 +48,18 @@
 #include "Interfaces/ClientInterfaces.h"
 
 #include "Platform/DynamicLibrary.h"
-#include "Platform/DynamicLibraryWrapper.h"
+#include "Platform/PlatformApi.h"
 
 GlobalContext::GlobalContext()
 {
-#if IS_WIN32()
-    const windows_platform::DynamicLibrary clientDLL{ windows_platform::DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
-    const windows_platform::DynamicLibrary engineDLL{ windows_platform::DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
-#elif IS_LINUX()
-    const linux_platform::SharedObject clientDLL{ linux_platform::DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
-    const linux_platform::SharedObject engineDLL{ linux_platform::DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
-#endif
+    const DynamicLibrary<PlatformApi> clientDLL{ PlatformApi{}, csgo::CLIENT_DLL };
+    const DynamicLibrary<PlatformApi> engineDLL{ PlatformApi{}, csgo::ENGINE_DLL };
 
     PatternNotFoundHandler patternNotFoundHandler;
-    retSpoofGadgets.emplace(PatternFinder{ getCodeSection(clientDLL.getView()), patternNotFoundHandler }, PatternFinder{ getCodeSection(engineDLL.getView()), patternNotFoundHandler });
+    retSpoofGadgets.emplace(PatternFinder{ clientDLL.getCodeSection(), patternNotFoundHandler }, PatternFinder{ clientDLL.getCodeSection(), patternNotFoundHandler });
 }
 
 #if IS_WIN32()
-LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-LRESULT GlobalContext::wndProcHook(HWND window, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    if (state == GlobalContext::State::Initialized) {
-        ImGui_ImplWin32_WndProcHandler(window, msg, wParam, lParam);
-        getOtherInterfaces().getInputSystem().enableInput(!gui->isOpen());
-    } else if (state == GlobalContext::State::NotInitialized) {
-        state = GlobalContext::State::Initializing;
-        ImGui::CreateContext();
-        ImGui_ImplWin32_Init(window);
-        initialize();
-        state = GlobalContext::State::Initialized;
-    }
-
-    return CallWindowProcW(hooks->originalWndProc, window, msg, wParam, lParam);
-}
 
 HRESULT GlobalContext::presentHook(IDirect3DDevice9* device, const RECT* src, const RECT* dest, HWND windowOverride, const RGNDATA* dirtyRegion)
 {
@@ -262,15 +236,15 @@ void GlobalContext::renderFrame()
 
 void GlobalContext::initialize()
 {
-    const DynamicLibrary<DynamicLibraryWrapper> clientSo{ DynamicLibraryWrapper{}, csgo::CLIENT_DLL };
-    clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientSo.getView(), retSpoofGadgets->client } });
-    const DynamicLibrary<DynamicLibraryWrapper> engineSo{ DynamicLibraryWrapper{}, csgo::ENGINE_DLL };
-    engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineSo.getView(), retSpoofGadgets->client } });
+    const DynamicLibrary<PlatformApi> clientSo{ PlatformApi{}, csgo::CLIENT_DLL };
+    clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientSo, retSpoofGadgets->client } });
+    const DynamicLibrary<PlatformApi> engineSo{ PlatformApi{}, csgo::ENGINE_DLL };
+    engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineSo, retSpoofGadgets->client } });
 
     interfaces.emplace();
     PatternNotFoundHandler patternNotFoundHandler;
-    const PatternFinder clientPatternFinder{ getCodeSection(clientSo.getView()), patternNotFoundHandler };
-    const PatternFinder enginePatternFinder{ getCodeSection(engineSo.getView()), patternNotFoundHandler };
+    const PatternFinder clientPatternFinder{ clientSo.getCodeSection(), patternNotFoundHandler };
+    const PatternFinder enginePatternFinder{ engineSo.getCodeSection(), patternNotFoundHandler };
 
     memory.emplace(clientPatternFinder, enginePatternFinder, std::get<csgo::ClientPOD*>(*clientInterfaces), *retSpoofGadgets);
 
