@@ -518,7 +518,7 @@ void Misc::drawBombTimer() noexcept
     ImGui::SetNextWindowSizeConstraints({ 0, -1 }, { FLT_MAX, -1 });
     ImGui::Begin("Bomb Timer", nullptr, ImGuiWindowFlags_NoTitleBar | (gui->isOpen() ? 0 : ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration));
 
-    std::ostringstream ss; ss << "Bomb on " << (!plantedC4.bombsite ? 'A' : 'B') << " : " << std::fixed << std::showpoint << std::setprecision(3) << (std::max)(plantedC4.blowTime - memory.globalVars->currenttime, 0.0f) << " s";
+    std::ostringstream ss; ss << "炸弹安在 " << (!plantedC4.bombsite ? 'A' : 'B') << " : " << std::fixed << std::showpoint << std::setprecision(3) << (std::max)(plantedC4.blowTime - memory.globalVars->currenttime, 0.0f) << " s";
 
     ImGui::textUnformattedCentered(ss.str().c_str());
 
@@ -1411,20 +1411,20 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
         ImGui::OpenPopup("");
 
     if (ImGui::BeginPopup("")) {
-        ImGui::Checkbox("No Title Bar", &miscConfig.spectatorList.noTitleBar);
+        ImGui::Checkbox("无标题栏", &miscConfig.spectatorList.noTitleBar);
         ImGui::EndPopup();
     }
     ImGui::PopID();
 
     ImGui::Checkbox("水印栏", &miscConfig.watermark.enabled);
-    ImGuiCustom::colorPicker("Offscreen Enemies", miscConfig.offscreenEnemies.asColor4(), &miscConfig.offscreenEnemies.enabled);
+    ImGuiCustom::colorPicker("屏外敌人指示器", miscConfig.offscreenEnemies.asColor4(), &miscConfig.offscreenEnemies.enabled);
     ImGui::SameLine();
     ImGui::PushID("Offscreen Enemies");
     if (ImGui::Button("..."))
         ImGui::OpenPopup("");
 
     if (ImGui::BeginPopup("")) {
-        ImGui::Checkbox("Health Bar", &miscConfig.offscreenEnemies.healthBar.enabled);
+        ImGui::Checkbox("血量条", &miscConfig.offscreenEnemies.healthBar.enabled);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(95.0f);
         ImGui::Combo("Type", &miscConfig.offscreenEnemies.healthBar.type, "Gradient\0Solid\0Health-based\0");
@@ -1480,16 +1480,16 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::PopID();
     ImGui::Combo("命中声音", &miscConfig.hitSound, "None\0Metal\0Gamesense\0Bell\0Glass\0Custom\0");
     if (miscConfig.hitSound == 5) {
-        ImGui::InputText("Hit Sound filename", &miscConfig.customHitSound);
+        ImGui::InputText("命中声音文件名", &miscConfig.customHitSound);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("audio file must be put in csgo/sound/ directory");
+            ImGui::SetTooltip("音频文件必须放在 csgo/sound/ 目录");
     }
     ImGui::PushID(5);
     ImGui::Combo("击杀声音", &miscConfig.killSound, "None\0Metal\0Gamesense\0Bell\0Glass\0Custom\0");
     if (miscConfig.killSound == 5) {
-        ImGui::InputText("Kill Sound filename", &miscConfig.customKillSound);
+        ImGui::InputText("击杀声音文件名", &miscConfig.customKillSound);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("audio file must be put in csgo/sound/ directory");
+            ImGui::SetTooltip("音频文件必须放在 csgo/sound/ 目录");
     }
     ImGui::PopID();
     ImGui::Checkbox("抛物线 (Grenade Prediction)", &miscConfig.nadePredict);
