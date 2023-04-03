@@ -1392,8 +1392,8 @@ void Misc::drawGUI(Visuals& visuals, inventory_changer::InventoryChanger& invent
     ImGui::PushID("Slowwalk Key");
     ImGui::hotkey("", miscConfig.slowwalkKey);
     ImGui::PopID();
-    ImGuiCustom::colorPicker("Noscope crosshair", miscConfig.noscopeCrosshair);
-    ImGuiCustom::colorPicker("Recoil crosshair", miscConfig.recoilCrosshair);
+    ImGuiCustom::colorPicker("狙击枪准星", miscConfig.noscopeCrosshair);
+    ImGuiCustom::colorPicker("后坐准星", miscConfig.recoilCrosshair);
     ImGui::Checkbox("自动手枪 (Auto pistol)", &miscConfig.autoPistol);
     ImGui::Checkbox("自动装弹 (Auto reload)", &miscConfig.autoReload);
     ImGui::Checkbox("自动接受 (Auto accept)", &miscConfig.autoAccept);

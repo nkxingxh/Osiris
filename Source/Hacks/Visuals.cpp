@@ -652,8 +652,8 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     ImGui::Checkbox("Inverse ragdoll gravity", &inverseRagdollGravity_);
     ImGui::Checkbox("禁用雾", &noFog);
     ImGui::Checkbox("禁用3D天空", &no3dSky);
-    ImGui::Checkbox("No aim punch", &noAimPunch);
-    ImGui::Checkbox("No view punch", &noViewPunch);
+    ImGui::Checkbox("无瞄准抖动", &noAimPunch);
+    ImGui::Checkbox("无视角抖动", &noViewPunch);
     ImGui::Checkbox("不显示手", &noHands);
     ImGui::Checkbox("没有袖子", &noSleeves);
     ImGui::Checkbox("没有武器", &noWeapons);
