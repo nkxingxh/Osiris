@@ -1,15 +1,11 @@
 #pragma once
 
 #include <intrin.h>
-#include <Windows.h>
 
 #include "Win.h"
 
-namespace windows_platform
-{
-
-struct PlatformApi {
-    [[nodiscard]] win::Peb* getPeb() const noexcept
+struct WindowsPlatformApi {
+    [[nodiscard]] static win::Peb* getPeb() noexcept
     {
 #if IS_WIN32()
         return reinterpret_cast<win::Peb*>(__readfsdword(0x30));
@@ -20,5 +16,3 @@ struct PlatformApi {
 #endif
     }
 };
-
-}

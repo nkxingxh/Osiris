@@ -4,6 +4,7 @@
 
 #include "PebLdr.h"
 #include "PortableExecutable.h"
+#include <Utils/SafeAddress.h>
 
 namespace windows_platform
 {
@@ -11,19 +12,23 @@ namespace windows_platform
 template <typename PlatformApi>
 class DynamicLibrary {
 public:
-    DynamicLibrary(PlatformApi platformApi, const char* libraryName)
-        : platformApi{ platformApi }, handle{ PebLdr{ platformApi.getPeb()->ldr }.getModuleHandle(libraryName) }
+    explicit DynamicLibrary(const char* libraryName)
+        : handle{ PebLdr{ PlatformApi::getPeb()->ldr }.getModuleHandle(libraryName) }
     {
     }
 
-    [[nodiscard]] const void* getFunctionAddress(const char* functionName) const noexcept
+    [[nodiscard]] SafeAddress getFunctionAddress(const char* functionName) const noexcept
     {
-        return PortableExecutable{ reinterpret_cast<const std::byte*>(handle) }.getExport(functionName);
+        if (handle)
+            return portableExecutable().getExport(functionName);
+        return SafeAddress{ 0 };
     }
 
     [[nodiscard]] std::span<const std::byte> getCodeSection() const noexcept
     {
-        return PortableExecutable{ reinterpret_cast<const std::byte*>(handle) }.getCodeSection();
+        if (handle)
+            return portableExecutable().getCodeSection();
+        return {};
     }
 
     [[nodiscard]] HMODULE getHandle() const noexcept
@@ -32,7 +37,11 @@ public:
     }
 
 private:
-    [[no_unique_address]] PlatformApi platformApi;
+    [[nodiscard]] PortableExecutable portableExecutable() const noexcept
+    {
+        return PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
+    }
+
     HMODULE handle;
 };
 
