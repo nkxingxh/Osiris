@@ -60,6 +60,8 @@
 #include <Interfaces/ClientInterfaces.h>
 #include <RetSpoof/FunctionInvoker.h>
 
+#include <Utils/StringBuilder.h>
+
 struct PreserveKillfeed {
     bool enabled = false;
     bool onlyHeadshots = false;
@@ -172,7 +174,7 @@ Misc::Misc(const ClientInterfaces& clientInterfaces, const EngineInterfaces& eng
     setClanTag{ retSpoofGadgets->engine, enginePatternFinder("53 56 57 8B DA 8B F9 FF 15"_pat).get() },
     submitReport{ retSpoofGadgets->client, clientPatternFinder("55 8B EC 83 E4 F8 83 EC 28 8B 4D 08"_pat).get() }
 #elif IS_LINUX()
-    setClanTag{ retSpoofGadgets->engine, enginePatternFinder("E8 ? ? ? ? E9 ? ? ? ? 0F 1F 44 00 00 48 8B 7D B0"_pat).add(1).relativeToAbsolute().get() },
+    setClanTag{ retSpoofGadgets->engine, enginePatternFinder("E8 ? ? ? ? E9 ? ? ? ? 0F 1F 44 00 00 48 8B 7D B0"_pat).add(1).abs().get() },
     submitReport{ retSpoofGadgets->client, clientPatternFinder("55 48 89 F7 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 D3 48 83 EC 58"_pat).get() }
 #endif
 {
@@ -519,7 +521,6 @@ void Misc::drawBombTimer() noexcept
     ImGui::Begin("Bomb Timer", nullptr, ImGuiWindowFlags_NoTitleBar | (gui->isOpen() ? 0 : ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration));
 
     std::ostringstream ss; ss << "炸弹安在 " << (!plantedC4.bombsite ? 'A' : 'B') << " : " << std::fixed << std::showpoint << std::setprecision(3) << (std::max)(plantedC4.blowTime - memory.globalVars->currenttime, 0.0f) << " s";
-
     ImGui::textUnformattedCentered(ss.str().c_str());
 
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Helpers::calculateColor(memory.globalVars->realtime, miscConfig.bombTimer.asColor3()));
@@ -540,7 +541,6 @@ void Misc::drawBombTimer() noexcept
             ImGui::PopStyleColor();
         } else if (const auto defusingPlayer = GameData::playerByHandle(plantedC4.defuserHandle)) {
             std::ostringstream ss; ss << defusingPlayer->name << " 正在拆除: " << std::fixed << std::showpoint << std::setprecision(3) << (std::max)(plantedC4.defuseCountDown - memory.globalVars->currenttime, 0.0f) << " s";
-
             ImGui::textUnformattedCentered(ss.str().c_str());
 
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, canDefuse ? IM_COL32(0, 255, 0, 255) : IM_COL32(255, 0, 0, 255));
@@ -919,23 +919,26 @@ void Misc::purchaseList(const csgo::GameEvent* event) noexcept
         if (miscConfig.purchaseList.mode == PurchaseList::Details) {
             GameData::Lock lock;
 
+            StringBuilderStorage<500> stringBuilderStorage;
             for (const auto& [handle, purchases] : playerPurchases) {
-                std::string s;
-                s.reserve(std::accumulate(purchases.items.begin(), purchases.items.end(), 0, [](int length, const auto& p) { return length + p.first.length() + 2; }));
-                for (const auto& purchasedItem : purchases.items) {
-                    if (purchasedItem.second > 1)
-                        s += std::to_string(purchasedItem.second) + "x ";
-                    s += purchasedItem.first + ", ";
-                }
+                auto stringBuilder = stringBuilderStorage.builder();
 
-                if (s.length() >= 2)
-                    s.erase(s.length() - 2);
+                bool printedFirst = false;
+                for (const auto& purchasedItem : purchases.items) {
+                    if (printedFirst)
+                        stringBuilder.put(", ");
+
+                    if (purchasedItem.second > 1)
+                        stringBuilder.put(purchasedItem.second, "x ");
+                    stringBuilder.put(purchasedItem.first);
+                    printedFirst = true;
+                }
 
                 if (const auto player = GameData::playerByHandle(handle)) {
                     if (miscConfig.purchaseList.showPrices)
-                        ImGui::TextWrapped("%s $%d: %s", player->name.c_str(), purchases.totalCost, s.c_str());
+                        ImGui::TextWrapped("%s $%d: %s", player->name.c_str(), purchases.totalCost, stringBuilder.cstring());
                     else
-                        ImGui::TextWrapped("%s: %s", player->name.c_str(), s.c_str());
+                        ImGui::TextWrapped("%s: %s", player->name.c_str(), stringBuilder.cstring());
                 }
             }
         } else if (miscConfig.purchaseList.mode == PurchaseList::Summary) {
@@ -980,20 +983,18 @@ void Misc::oppositeHandKnife(csgo::FrameStage stage) noexcept
 static std::vector<std::uint64_t> reportedPlayers;
 static int reportbotRound;
 
-[[nodiscard]] static std::string generateReportString()
+static void generateReportString(StringBuilder& builder)
 {
-    std::string report;
     if (miscConfig.reportbot.textAbuse)
-        report += "textabuse,";
+        builder.put("textabuse,");
     if (miscConfig.reportbot.griefing)
-        report += "grief,";
+        builder.put("grief,");
     if (miscConfig.reportbot.wallhack)
-        report += "wallhack,";
+        builder.put("wallhack,");
     if (miscConfig.reportbot.aimbot)
-        report += "aimbot,";
+        builder.put("aimbot,");
     if (miscConfig.reportbot.other)
-        report += "speedhack,";
-    return report;
+        builder.put("speedhack,");
 }
 
 [[nodiscard]] static bool isPlayerReported(std::uint64_t xuid)
@@ -1036,12 +1037,15 @@ void Misc::runReportbot() noexcept
     if (reportbotRound >= miscConfig.reportbot.rounds)
         return;
 
+    StringBuilderStorage<100> stringBuilderStorage;
     for (const auto& xuid : getXuidsOfCandidatesToBeReported(engineInterfaces.getEngine(), clientInterfaces, interfaces, memory)) {
         if (isPlayerReported(xuid))
             continue;
 
-        if (const auto report = generateReportString(); !report.empty()) {
-            submitReport(LINUX_ARGS(nullptr,) std::to_string(xuid).c_str(), report.c_str());
+        auto stringBuilder = stringBuilderStorage.builder();
+        generateReportString(stringBuilder);
+        if (const auto report = stringBuilder.cstring(); report[0] != '\0') {
+            submitReport(LINUX_ARGS(nullptr,) std::to_string(xuid).c_str(), report);
             lastReportTime = memory.globalVars->realtime;
             reportedPlayers.push_back(xuid);
             return;

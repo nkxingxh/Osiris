@@ -100,7 +100,7 @@ static csgo::EntityPOD* createGloves(const ClientInterfaces& clientInterfaces, c
 
     std::memset(econWearable, 0, sizeOfEconWearable);
 
-    const auto econWearableConstructor = SafeAddress{ std::uintptr_t(createWearable) + 61 }.relativeToAbsolute().get();
+    const auto econWearableConstructor = SafeAddress{ std::uintptr_t(createWearable) + 61 }.abs().get();
     retSpoofGadgets->client.invokeThiscall<void>(std::uintptr_t(econWearable), econWearableConstructor);
 
     csgo::Entity::from(retSpoofGadgets->client, static_cast<csgo::EntityPOD*>(econWearable)).initializeAsClientEntity(nullptr, false);
@@ -1123,7 +1123,7 @@ void InventoryChanger::onSoUpdated(const csgo::SharedObject& object) noexcept
         WeaponId& weaponID = *reinterpret_cast<WeaponId*>(std::uintptr_t(object.getPOD()) + WIN32_LINUX(0x10, 0x1C));
         if (const auto it = std::ranges::find(equipRequests, weaponID, &EquipRequest::weaponID); it != equipRequests.end()) {
             ++it->counter;
-            weaponID = WeaponId::None;
+            weaponID = WeaponId{};
         }
     }
 }

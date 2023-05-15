@@ -75,7 +75,9 @@ namespace Helpers
         case Antwerp2022ViewerPassWith3Tokens: return Antwerp2022BronzeCoin;
         case Rio2022ViewerPass:
         case Rio2022ViewerPassWith3Tokens: return Rio2022BronzeCoin;
-        default: return WeaponId::None;
+        case Paris2023ViewerPass:
+        case Paris2023ViewerPassWith3Tokens: return Paris2023BronzeCoin;
+        default: return WeaponId{};
         }
     }
 
