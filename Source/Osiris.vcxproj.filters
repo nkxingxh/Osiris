@@ -113,9 +113,6 @@
     <ClCompile Include="Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Memory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1168,9 +1165,6 @@
     <ClInclude Include="Platform\Windows\PebLdr.h">
       <Filter>Platform\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="Platform\PlatformApi.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
     <ClInclude Include="Utils\Pad.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -1187,6 +1181,15 @@
       <Filter>BytePatterns</Filter>
     </ClInclude>
     <ClInclude Include="BytePatterns\LinuxClientPatternFinder.h">
+      <Filter>BytePatterns</Filter>
+    </ClInclude>
+    <ClInclude Include="BytePatterns\LinuxEnginePatternFinder.h">
+      <Filter>BytePatterns</Filter>
+    </ClInclude>
+    <ClInclude Include="BytePatterns\EnginePatternFinder.h">
+      <Filter>BytePatterns</Filter>
+    </ClInclude>
+    <ClInclude Include="BytePatterns\WindowsEnginePatternFinder.h">
       <Filter>BytePatterns</Filter>
     </ClInclude>
   </ItemGroup>

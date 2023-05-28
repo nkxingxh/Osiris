@@ -158,7 +158,6 @@
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Hacks\Misc.cpp" />
     <ClCompile Include="Hooks.cpp" />
-    <ClCompile Include="Memory.cpp" />
     <ClCompile Include="pch-c.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)$(TargetName)-c.pch</PrecompiledHeaderOutputFile>
@@ -197,8 +196,11 @@
     <ClInclude Include="..\Dependencies\MinHook\trampoline.h" />
     <ClInclude Include="..\Dependencies\nlohmann\json.hpp" />
     <ClInclude Include="BytePatterns\ClientPatternFinder.h" />
+    <ClInclude Include="BytePatterns\EnginePatternFinder.h" />
     <ClInclude Include="BytePatterns\LinuxClientPatternFinder.h" />
+    <ClInclude Include="BytePatterns\LinuxEnginePatternFinder.h" />
     <ClInclude Include="BytePatterns\WindowsClientPatternFinder.h" />
+    <ClInclude Include="BytePatterns\WindowsEnginePatternFinder.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="ConfigStructs.h" />
     <ClInclude Include="Config\Configurable.h" />
@@ -418,7 +420,6 @@
     <ClInclude Include="Platform\Macros\CallStack.h" />
     <ClInclude Include="Platform\Macros\IsPlatform.h" />
     <ClInclude Include="Platform\Macros\PlatformSpecific.h" />
-    <ClInclude Include="Platform\PlatformApi.h" />
     <ClInclude Include="Platform\Windows\WindowsDynamicLibrary.h" />
     <ClInclude Include="Platform\Windows\PebLdr.h" />
     <ClInclude Include="Platform\Windows\WindowsPlatformApi.h" />
@@ -516,7 +517,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>FT2_BUILD_LIBRARY;NOMINMAX;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;WIN32_LEAN_AND_MEAN;WINVER=0x0601;_WIN32_WINNT=0x0601;WIN32;_DEBUG;OSIRIS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -555,7 +556,7 @@
       <FloatingPointExceptions>false</FloatingPointExceptions>
       <CreateHotpatchableImage>false</CreateHotpatchableImage>
       <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <AdditionalOptions>/Gw /utf-8 %(AdditionalOptions)</AdditionalOptions>
