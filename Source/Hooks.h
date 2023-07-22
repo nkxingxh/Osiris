@@ -15,9 +15,9 @@ struct SDL_Window;
 union SDL_Event;
 #endif
 
+#include "CSGO/Constants/ConVarNames.h"
+
 #include "Hooks/MinHook.h"
-#include "Hooks/VmtHook.h"
-#include "Hooks/VmtSwap.h"
 #include "Memory.h"
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hooks/ClientHooks.h"
@@ -57,41 +57,60 @@ class Glow;
 class Visuals;
 class Misc;
 
-#if IS_LINUX()
-
-int pollEvent(SDL_Event* event) noexcept;
-
-#endif
-
 class Hooks {
 public:
 #if IS_WIN32() || IS_WIN64()
-    Hooks(HMODULE moduleHandle) noexcept;
+    Hooks(const Memory& memory, csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, DynamicLibrary clientDll, DynamicLibrary engineDll, DynamicLibrary vstdlibDll, DynamicLibrary vguiMatSurfaceDll) noexcept
+        : engineHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, engineInterfaces.getEngine().getPOD() }
+        , clientHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, clientInterface }
+        , clientModeHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.clientMode }
+        , clientStateHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, &memory.splitScreen->splitScreenPlayers[0]->client }
+        , playerInventoryHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.inventoryManager.getLocalInventory() }
+        , panoramaMarshallHelperHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.panoramaMarshallHelper }
+        , viewRenderHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.viewRender }
+        , inventoryManagerHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.inventoryManager.getPOD() }
+        , bspQueryHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, engineInterfaces.getEngine().getBSPTreeQuery() }
+        , engineSoundHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, std::get<csgo::EngineSoundPOD*>(engineInterfaces.getPODs()) }
+        , svCheatsHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, interfaces.getCvar().findVar(csgo::sv_cheats) }
+        , modelRenderHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, std::get<csgo::ModelRenderPOD*>(engineInterfaces.getPODs()) }
+        , surfaceHooks{ VmtLengthCalculator{ vguiMatSurfaceDll.getCodeSection(), vguiMatSurfaceDll.getVmtSection() }, interfaces.getSurface().getPOD() }
+#if IS_WIN32()
+        , keyValuesSystemHooks{ VmtLengthCalculator{ vstdlibDll.getCodeSection(), vstdlibDll.getVmtSection() }, memory.keyValuesSystem }
+#endif
+        , memory{ memory }
+    {
+    }
 
-    WindowProcedureHook windowProcedureHook;
     std::add_pointer_t<HRESULT __stdcall(IDirect3DDevice9*, const RECT*, const RECT*, HWND, const RGNDATA*)> originalPresent;
     std::add_pointer_t<HRESULT __stdcall(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*)> originalReset;
 #elif IS_LINUX()
-    template <typename PlatformApi>
-    Hooks(PlatformApi) noexcept
-        : sdlFunctions{ DynamicLibrary<PlatformApi>{ "libSDL2-2.0.so.0" } }
+    Hooks(std::add_pointer_t<int(SDL_Event*)> pollEvent, const Memory& memory, csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, DynamicLibrary clientDll, DynamicLibrary engineDll, DynamicLibrary vstdlibDll, DynamicLibrary vguiMatSurfaceDll) noexcept
+        : sdlFunctions{ DynamicLibrary{ "libSDL2-2.0.so.0" } }
+        , pollEvent{ pollEvent }
+        , engineHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, engineInterfaces.getEngine().getPOD() }
+        , clientHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, clientInterface }
+        , clientModeHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.clientMode }
+        , clientStateHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, &memory.splitScreen->splitScreenPlayers[0]->client }
+        , playerInventoryHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.inventoryManager.getLocalInventory() }
+        , panoramaMarshallHelperHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.panoramaMarshallHelper }
+        , viewRenderHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.viewRender }
+        , inventoryManagerHooks{ VmtLengthCalculator{ clientDll.getCodeSection(), clientDll.getVmtSection() }, memory.inventoryManager.getPOD() }
+        , bspQueryHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, engineInterfaces.getEngine().getBSPTreeQuery() }
+        , engineSoundHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, std::get<csgo::EngineSoundPOD*>(engineInterfaces.getPODs()) }
+        , svCheatsHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, interfaces.getCvar().findVar(csgo::sv_cheats) }
+        , modelRenderHooks{ VmtLengthCalculator{ engineDll.getCodeSection(), engineDll.getVmtSection() }, std::get<csgo::ModelRenderPOD*>(engineInterfaces.getPODs()) }
+        , surfaceHooks{ VmtLengthCalculator{ vguiMatSurfaceDll.getCodeSection(), vguiMatSurfaceDll.getVmtSection() }, interfaces.getSurface().getPOD() }
+        , memory{ memory }
     {
-        pollEvent = *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent);
-        *reinterpret_cast<decltype(::pollEvent)**>(sdlFunctions.pollEvent) = ::pollEvent;
     }
 
     SdlFunctions sdlFunctions;
-
     std::add_pointer_t<int(SDL_Event*)> pollEvent;
     std::add_pointer_t<void(SDL_Window*)> swapWindow;
 #endif
 
-    void install(csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept;
-    void uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
-
-#if IS_WIN32()
-    KeyValuesSystemHooks keyValuesSystemHooks;
-#endif
+    void install() noexcept;
+    void uninstall(Misc& misc, Glow& glow, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
 
     EngineHooks engineHooks;
     ClientHooks clientHooks;
@@ -106,11 +125,9 @@ public:
     SvCheatsHooks svCheatsHooks;
     ModelRenderHooks modelRenderHooks;
     SurfaceHooks surfaceHooks;
-
-private:
-#if IS_WIN32() || IS_WIN64()
-    HMODULE moduleHandle;
+#if IS_WIN32()
+    KeyValuesSystemHooks keyValuesSystemHooks;
 #endif
-};
 
-inline std::optional<Hooks> hooks;
+    const Memory& memory;
+};

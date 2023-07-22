@@ -1,13 +1,11 @@
 #pragma once
 
 #include "Hooks/MinHook.h"
-#include "Hooks/VmtHook.h"
-#include "Hooks/VmtSwap.h"
 #include "Platform/Macros/IsPlatform.h"
+#include "Vmt/VmtSwapper.h"
 
 #if IS_WIN32()
-// Easily switch hooking method for all hooks, choose between MinHook/VmtHook/VmtSwap
 using HookType = MinHook;
 #else
-using HookType = VmtSwap;
+using HookType = VmtSwapper;
 #endif

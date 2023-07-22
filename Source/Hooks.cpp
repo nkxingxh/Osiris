@@ -78,7 +78,7 @@
 HRESULT __stdcall reset(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* params) noexcept;
 HRESULT __stdcall present(IDirect3DDevice9* device, const RECT* src, const RECT* dest, HWND windowOverride, const RGNDATA* dirtyRegion) noexcept;
 
-DWORD WINAPI unload(HMODULE moduleHandle) noexcept;
+DWORD WINAPI unload(LPVOID) noexcept;
 #elif IS_LINUX()
 
 int pollEvent(SDL_Event* event) noexcept;
@@ -86,16 +86,7 @@ void swapWindow(SDL_Window* window) noexcept;
 
 #endif
 
-#if IS_WIN32() || IS_WIN64()
-
-Hooks::Hooks(HMODULE moduleHandle) noexcept
-    : windowProcedureHook{ FindWindowW(L"Valve001", nullptr) }, moduleHandle{ moduleHandle }
-{
-}
-
-#endif
-
-void Hooks::install(csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept
+void Hooks::install() noexcept
 {
 #if IS_WIN32()
     originalPresent = **reinterpret_cast<decltype(originalPresent)**>(memory.present);
@@ -113,24 +104,37 @@ void Hooks::install(csgo::ClientPOD* clientInterface, const EngineInterfaces& en
 
 #endif
     
-    bspQueryHooks.install(engineInterfaces.getEngine().getBSPTreeQuery());
+    bspQueryHooks.incrementReferenceCount();
+    bspQueryHooks.update();
+    clientHooks.incrementReferenceCount();
+    clientHooks.update();
+    clientModeHooks.incrementReferenceCount();
+    clientModeHooks.update();
+    clientStateHooks.incrementReferenceCount();
+    clientStateHooks.update();
+    playerInventoryHooks.incrementReferenceCount();
+    playerInventoryHooks.update();
+    engineHooks.incrementReferenceCount();
+    engineHooks.update();
+    engineSoundHooks.incrementReferenceCount();
+    engineSoundHooks.update();
+    inventoryManagerHooks.incrementReferenceCount();
+    inventoryManagerHooks.update();
+    modelRenderHooks.incrementReferenceCount();
+    modelRenderHooks.update();
+    panoramaMarshallHelperHooks.incrementReferenceCount();
+    panoramaMarshallHelperHooks.update();
+    surfaceHooks.incrementReferenceCount();
+    surfaceHooks.update();
+    svCheatsHooks.incrementReferenceCount();
+    svCheatsHooks.update();
+    viewRenderHooks.incrementReferenceCount();
+    viewRenderHooks.update();
 
 #if IS_WIN32()
-    keyValuesSystemHooks.install(memory.keyValuesSystem);
+    keyValuesSystemHooks.incrementReferenceCount();
+    keyValuesSystemHooks.update();
 #endif
-
-    engineHooks.install(engineInterfaces.getEngine().getPOD());
-    clientHooks.install(clientInterface);
-    clientModeHooks.install(memory.clientMode);
-    clientStateHooks.install(&memory.splitScreen->splitScreenPlayers[0]->client);
-    playerInventoryHooks.install(memory.inventoryManager.getLocalInventory());
-    inventoryManagerHooks.install(memory.inventoryManager.getPOD());
-    engineSoundHooks.install(std::get<csgo::EngineSoundPOD*>(engineInterfaces.getPODs()));
-    modelRenderHooks.install(std::get<csgo::ModelRenderPOD*>(engineInterfaces.getPODs()));
-    panoramaMarshallHelperHooks.install(memory.panoramaMarshallHelper);
-    surfaceHooks.install(interfaces.getSurface().getPOD());
-    svCheatsHooks.install(interfaces.getCvar().findVar(csgo::sv_cheats));
-    viewRenderHooks.install(memory.viewRender);
 
 #if IS_WIN32()
     if constexpr (std::is_same_v<HookType, MinHook>)
@@ -138,7 +142,7 @@ void Hooks::install(csgo::ClientPOD* clientInterface, const EngineInterfaces& en
 #endif
 }
 
-void Hooks::uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept
+void Hooks::uninstall(Misc& misc, Glow& glow, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept
 {
     misc.updateEventListeners(true);
     visuals.updateEventListeners(true);
@@ -150,19 +154,19 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& vis
     }
 #endif
 
-    engineHooks.uninstall();
-    clientHooks.uninstall();
-    clientModeHooks.uninstall();
-    clientStateHooks.uninstall();
-    panoramaMarshallHelperHooks.uninstall();
-    viewRenderHooks.uninstall();
-    playerInventoryHooks.uninstall();
-    inventoryManagerHooks.uninstall();
-    bspQueryHooks.uninstall();
-    engineSoundHooks.uninstall();
-    svCheatsHooks.uninstall();
-    modelRenderHooks.uninstall();
-    surfaceHooks.uninstall();
+    engineHooks.forceUninstall();
+    clientHooks.forceUninstall();
+    clientModeHooks.forceUninstall();
+    clientStateHooks.forceUninstall();
+    panoramaMarshallHelperHooks.forceUninstall();
+    viewRenderHooks.forceUninstall();
+    playerInventoryHooks.forceUninstall();
+    inventoryManagerHooks.forceUninstall();
+    bspQueryHooks.forceUninstall();
+    engineSoundHooks.forceUninstall();
+    svCheatsHooks.forceUninstall();
+    modelRenderHooks.forceUninstall();
+    surfaceHooks.forceUninstall();
 
     Netvars::restore();
 
@@ -170,13 +174,12 @@ void Hooks::uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& vis
     inventoryChanger.reset(memory);
 
 #if IS_WIN32()
-    keyValuesSystemHooks.uninstall();
-    windowProcedureHook.uninstall();
+    keyValuesSystemHooks.forceUninstall();
 
     **reinterpret_cast<void***>(memory.present) = originalPresent;
     **reinterpret_cast<void***>(memory.reset) = originalReset;
 
-    if (HANDLE thread = CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(unload), moduleHandle, 0, nullptr))
+    if (HANDLE thread = CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(unload), 0, 0, nullptr))
         CloseHandle(thread);
 #elif IS_LINUX()
     *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent) = pollEvent;

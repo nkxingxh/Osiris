@@ -132,8 +132,6 @@
     <ClCompile Include="Helpers\KeyValuesFactory.cpp" />
     <ClCompile Include="Helpers\PatternNotFoundHandler.cpp" />
     <ClCompile Include="Hooks\MinHook.cpp" />
-    <ClCompile Include="Hooks\VmtHook.cpp" />
-    <ClCompile Include="Hooks\VmtSwap.cpp" />
     <ClCompile Include="imguiCustom.cpp" />
     <ClCompile Include="InputUtil.cpp" />
     <ClCompile Include="InventoryChanger\Backend\Request\RequestHandler.cpp" />
@@ -338,8 +336,6 @@
     <ClInclude Include="Hooks\SurfaceHooks.h" />
     <ClInclude Include="Hooks\SvCheatsHooks.h" />
     <ClInclude Include="Hooks\ViewRenderHooks.h" />
-    <ClInclude Include="Hooks\VmtHook.h" />
-    <ClInclude Include="Hooks\VmtSwap.h" />
     <ClInclude Include="Hooks\WindowProcedureHook.h" />
     <ClInclude Include="HookType.h" />
     <ClInclude Include="imguiCustom.h" />
@@ -405,6 +401,7 @@
     <ClInclude Include="InventoryChanger\ItemId.h" />
     <ClInclude Include="InventoryChanger\WeaponNames.h" />
     <ClInclude Include="JsonForward.h" />
+    <ClInclude Include="MemoryAllocation\MemoryAllocator.h" />
     <ClInclude Include="MemorySearch\BytePattern.h" />
     <ClInclude Include="MemorySearch\BytePatternConverter.h" />
     <ClInclude Include="MemorySearch\BytePatternLiteral.h" />
@@ -420,6 +417,7 @@
     <ClInclude Include="Platform\Macros\CallStack.h" />
     <ClInclude Include="Platform\Macros\IsPlatform.h" />
     <ClInclude Include="Platform\Macros\PlatformSpecific.h" />
+    <ClInclude Include="Platform\TypeInfoPrecedingVmt.h" />
     <ClInclude Include="Platform\Windows\WindowsDynamicLibrary.h" />
     <ClInclude Include="Platform\Windows\PebLdr.h" />
     <ClInclude Include="Platform\Windows\WindowsPlatformApi.h" />
@@ -446,12 +444,18 @@
     <ClInclude Include="Texture.h" />
     <ClInclude Include="Utils\FlagsBuilder.h" />
     <ClInclude Include="Utils\HexChars.h" />
+    <ClInclude Include="Utils\MemorySection.h" />
     <ClInclude Include="Utils\Pad.h" />
+    <ClInclude Include="Utils\RefCountedHook.h" />
     <ClInclude Include="Utils\ReturnAddress.h" />
     <ClInclude Include="Utils\SafeAddress.h" />
     <ClInclude Include="Utils\SpanSlice.h" />
     <ClInclude Include="Utils\StringBuilder.h" />
     <ClInclude Include="Utils\TypeHint.h" />
+    <ClInclude Include="Vmt\VmtCopy.h" />
+    <ClInclude Include="Vmt\VmtLength.h" />
+    <ClInclude Include="Vmt\VmtLengthCalculator.h" />
+    <ClInclude Include="Vmt\VmtSwapper.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\default_vs.hlsl">

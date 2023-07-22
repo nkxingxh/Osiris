@@ -71,8 +71,7 @@ struct HudPOD;
 
 class Memory {
 public:
-    template <typename PlatformApi>
-    Memory(PlatformApi, const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
+    Memory(const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
 
 #if IS_WIN32() || IS_WIN64()
     std::uintptr_t present;
@@ -146,8 +145,7 @@ private:
     csgo::MoveHelperPOD* moveHelperPtr;
 };
 
-template <typename PlatformApi>
-Memory::Memory(PlatformApi, const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
+inline Memory::Memory(const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
     : soundMessages{ enginePatternFinder.soundMessages() },
     splitScreen{ enginePatternFinder.splitScreen() },
     plantedC4s{ clientPatternFinder.plantedC4s() },
@@ -179,15 +177,15 @@ Memory::Memory(PlatformApi, const ClientPatternFinder& clientPatternFinder, cons
     itemSystemFn{ clientPatternFinder.getItemSystem() },
     moveHelperPtr{ clientPatternFinder.moveHelper() }
 {
-    const DynamicLibrary<PlatformApi> tier0{ csgo::TIER0_DLL };
+    const DynamicLibrary tier0{ csgo::TIER0_DLL };
     debugMsg = tier0.getFunctionAddress("Msg").template as<decltype(debugMsg)>();
 
 #if IS_WIN32() || IS_WIN64()
-    const DynamicLibrary<PlatformApi> gameOverlayRenderer{ "gameoverlayrenderer.dll" };
+    const DynamicLibrary gameOverlayRenderer{ "gameoverlayrenderer.dll" };
 
     PatternNotFoundHandler patternNotFoundHandler;
-    present = PatternFinder{ gameOverlayRenderer.getCodeSection(), patternNotFoundHandler }("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
-    reset = PatternFinder{ gameOverlayRenderer.getCodeSection(), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
+    present = PatternFinder{ gameOverlayRenderer.getCodeSection().raw(), patternNotFoundHandler}("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
+    reset = PatternFinder{ gameOverlayRenderer.getCodeSection().raw(), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
 
     clientMode = **reinterpret_cast<csgo::ClientMode***>((*reinterpret_cast<uintptr_t**>(clientInterface))[10] + 5);
     input = *reinterpret_cast<csgo::Input**>((*reinterpret_cast<uintptr_t**>(clientInterface))[16] + 1);

@@ -6,6 +6,8 @@
 #else
 #include <imgui/imgui_impl_sdl.h>
 #include <imgui/imgui_impl_opengl3.h>
+
+#include "SdlFunctions.h"
 #endif
 
 #include "EventListener.h"
@@ -49,22 +51,30 @@
 
 #include "Platform/DynamicLibrary.h"
 
-template <typename PlatformApi>
-GlobalContext<PlatformApi>::GlobalContext(PlatformApi platformApi)
-    : platformApi{ platformApi }
+#if IS_LINUX()
+
+int pollEvent(SDL_Event* event) noexcept;
+
+#endif
+
+#if IS_WIN32() || IS_WIN64()
+GlobalContext::GlobalContext(HMODULE moduleHandle)
+    : moduleHandle{ moduleHandle }
+#elif IS_LINUX()
+GlobalContext::GlobalContext()
+#endif
 {
-    const DynamicLibrary<PlatformApi> clientDLL{ csgo::CLIENT_DLL };
-    const DynamicLibrary<PlatformApi> engineDLL{ csgo::ENGINE_DLL };
+    const DynamicLibrary clientDLL{ csgo::CLIENT_DLL };
+    const DynamicLibrary engineDLL{ csgo::ENGINE_DLL };
 
     PatternNotFoundHandler patternNotFoundHandler;
-    retSpoofGadgets.emplace(PatternFinder{ clientDLL.getCodeSection(), patternNotFoundHandler }, PatternFinder{ clientDLL.getCodeSection(), patternNotFoundHandler });
+    retSpoofGadgets.emplace(PatternFinder{ clientDLL.getCodeSection().raw(), patternNotFoundHandler }, PatternFinder{ engineDLL.getCodeSection().raw(), patternNotFoundHandler });
 }
 
 #if IS_LINUX()
-template <typename PlatformApi>
-int GlobalContext<PlatformApi>::pollEventHook(SDL_Event* event)
+int GlobalContext::pollEventHook(SDL_Event* event)
 {
-    const auto result = hooks->pollEvent(event);
+    const auto result = pollEvent(event);
 
     if (state == GlobalContextState::Initialized) {
         if (result && ImGui_ImplSDL2_ProcessEvent(event) && gui->isOpen())
@@ -79,8 +89,7 @@ int GlobalContext<PlatformApi>::pollEventHook(SDL_Event* event)
     return result;
 }
 
-template <typename PlatformApi>
-void GlobalContext<PlatformApi>::swapWindowHook(SDL_Window* window)
+void GlobalContext::swapWindowHook(SDL_Window* window)
 {
     [[maybe_unused]] static const auto _ = ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
 
@@ -99,8 +108,7 @@ void GlobalContext<PlatformApi>::swapWindowHook(SDL_Window* window)
 
 #endif
 
-template <typename PlatformApi>
-void GlobalContext<PlatformApi>::renderFrame()
+void GlobalContext::renderFrame()
 {
     ImGui::NewFrame();
 
@@ -127,27 +135,43 @@ void GlobalContext<PlatformApi>::renderFrame()
         gui->handleToggle(features->misc, getOtherInterfaces());
 
         if (gui->isOpen())
-            gui->render(getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *memory, *config);
+            gui->render(*hooks, getEngineInterfaces(), ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getOtherInterfaces(), *memory, *config);
     }
 
     ImGui::EndFrame();
     ImGui::Render();
 }
 
-template <typename PlatformApi>
-void GlobalContext<PlatformApi>::initialize()
+void GlobalContext::enable()
 {
-    const DynamicLibrary<PlatformApi> clientSo{ csgo::CLIENT_DLL };
-    clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientSo, retSpoofGadgets->client } });
-    const DynamicLibrary<PlatformApi> engineSo{ csgo::ENGINE_DLL };
-    engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineSo, retSpoofGadgets->client } });
+#if IS_WIN32() || IS_WIN64()
+    windowProcedureHook.emplace(FindWindowW(L"Valve001", nullptr));
+#elif IS_LINUX()
+    SdlFunctions sdlFunctions{ DynamicLibrary{ "libSDL2-2.0.so.0" } };
+    pollEvent = *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent);
+    *reinterpret_cast<decltype(::pollEvent)**>(sdlFunctions.pollEvent) = ::pollEvent;
+#endif
+}
 
-    interfaces.emplace(PlatformApi{});
+void GlobalContext::initialize()
+{
+    const DynamicLibrary clientDll{ csgo::CLIENT_DLL };
+    clientInterfaces = createClientInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ clientDll, retSpoofGadgets->client } });
+    const DynamicLibrary engineDll{ csgo::ENGINE_DLL };
+    engineInterfacesPODs = createEngineInterfacesPODs(InterfaceFinderWithLog{ InterfaceFinder{ engineDll, retSpoofGadgets->client } });
+
+    interfaces.emplace();
     PatternNotFoundHandler patternNotFoundHandler;
-    const PatternFinder clientPatternFinder{ clientSo.getCodeSection(), patternNotFoundHandler };
-    const PatternFinder enginePatternFinder{ engineSo.getCodeSection(), patternNotFoundHandler };
+    const PatternFinder clientPatternFinder{ clientDll.getCodeSection().raw(), patternNotFoundHandler };
+    const PatternFinder enginePatternFinder{ engineDll.getCodeSection().raw(), patternNotFoundHandler };
 
-    memory.emplace(PlatformApi{}, ClientPatternFinder{ clientPatternFinder }, EnginePatternFinder{ enginePatternFinder }, std::get<csgo::ClientPOD*>(*clientInterfaces), *retSpoofGadgets);
+    memory.emplace(ClientPatternFinder{ clientPatternFinder }, EnginePatternFinder{ enginePatternFinder }, std::get<csgo::ClientPOD*>(*clientInterfaces), *retSpoofGadgets);
+
+    hooks.emplace(
+#if IS_LINUX()
+        pollEvent,
+#endif
+        *memory, std::get<csgo::ClientPOD*>(*clientInterfaces), getEngineInterfaces(), getOtherInterfaces(), clientDll, engineDll, DynamicLibrary{ csgo::VSTDLIB_DLL }, DynamicLibrary{ csgo::VGUIMATSURFACE_DLL });
 
     Netvars::init(ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }.getClient());
     gameEventListener.emplace(getEngineInterfaces().getGameEventManager(memory->getEventDescriptor));
@@ -155,7 +179,8 @@ void GlobalContext<PlatformApi>::initialize()
     randomGenerator.emplace();
     features.emplace(createFeatures(*memory, ClientInterfaces{ retSpoofGadgets->client, *clientInterfaces }, getEngineInterfaces(), getOtherInterfaces(), ClientPatternFinder{ clientPatternFinder }, EnginePatternFinder{ enginePatternFinder }, *randomGenerator));
     config.emplace(*features, getOtherInterfaces(), *memory);
-    
+    features->chams.setModelRenderHooks(&hooks->modelRenderHooks);
+
     gui.emplace();
-    hooks->install(std::get<csgo::ClientPOD*>(*clientInterfaces), getEngineInterfaces(), getOtherInterfaces(), *memory);
+    hooks->install();
 }

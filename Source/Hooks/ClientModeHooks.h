@@ -4,6 +4,8 @@
 #include <Platform/Macros/CallingConventions.h>
 #include <Platform/Macros/PlatformSpecific.h>
 #include <RetSpoof/FunctionInvoker.h>
+#include <Utils/RefCountedHook.h>
+#include <Vmt/VmtLengthCalculator.h>
 
 namespace csgo
 {
@@ -12,23 +14,11 @@ namespace csgo
     struct ViewSetup;
 }
 
-class ClientModeHooks {
+class ClientModeHooks : public RefCountedHook<ClientModeHooks> {
 public:
-    void install(csgo::ClientMode* clientMode)
+    explicit ClientModeHooks(const VmtLengthCalculator& vmtLengthCalculator, csgo::ClientMode* clientMode)
+        : hookImpl{ vmtLengthCalculator }, clientMode{ clientMode }
     {
-        hookImpl.init(clientMode);
-        originalShouldDrawFog = reinterpret_cast<decltype(originalShouldDrawFog)>(hookImpl.hookAt(WIN32_LINUX(17, 18), &shouldDrawFog));
-        originalOverrideView = reinterpret_cast<decltype(originalOverrideView)>(hookImpl.hookAt(WIN32_LINUX(18, 19), &overrideView));
-        originalCreateMove = reinterpret_cast<decltype(originalCreateMove)>(hookImpl.hookAt(WIN32_LINUX(24, 25), &createMove));
-        originalShouldDrawViewModel = reinterpret_cast<decltype(originalShouldDrawViewModel)>(hookImpl.hookAt(WIN32_LINUX(27, 28), &shouldDrawViewModel));
-        originalGetViewModelFov = reinterpret_cast<decltype(originalGetViewModelFov)>(hookImpl.hookAt(WIN32_LINUX(35, 36), &getViewModelFov));
-        originalDoPostScreenEffects = reinterpret_cast<decltype(originalDoPostScreenEffects)>(hookImpl.hookAt(WIN32_LINUX(44, 45), &doPostScreenEffects));
-        originalUpdateColorCorrectionWeights = reinterpret_cast<decltype(originalUpdateColorCorrectionWeights)>(hookImpl.hookAt(WIN32_LINUX(58, 61), &updateColorCorrectionWeights));
-    }
-
-    void uninstall()
-    {
-        hookImpl.restore();
     }
 
     [[nodiscard]] auto getOriginalShouldDrawFog() const
@@ -75,7 +65,32 @@ public:
     static void FASTCALL_CONV updateColorCorrectionWeights(FASTCALL_THIS(csgo::ClientMode* thisptr)) noexcept;
 
 private:
+    void install() noexcept
+    {
+        hookImpl.install(*reinterpret_cast<std::uintptr_t**>(clientMode));
+        originalShouldDrawFog = reinterpret_cast<decltype(originalShouldDrawFog)>(hookImpl.hook(WIN32_LINUX(17, 18), std::uintptr_t(&shouldDrawFog)));
+        originalOverrideView = reinterpret_cast<decltype(originalOverrideView)>(hookImpl.hook(WIN32_LINUX(18, 19), std::uintptr_t(&overrideView)));
+        originalCreateMove = reinterpret_cast<decltype(originalCreateMove)>(hookImpl.hook(WIN32_LINUX(24, 25), std::uintptr_t(&createMove)));
+        originalShouldDrawViewModel = reinterpret_cast<decltype(originalShouldDrawViewModel)>(hookImpl.hook(WIN32_LINUX(27, 28), std::uintptr_t(&shouldDrawViewModel)));
+        originalGetViewModelFov = reinterpret_cast<decltype(originalGetViewModelFov)>(hookImpl.hook(WIN32_LINUX(35, 36), std::uintptr_t(&getViewModelFov)));
+        originalDoPostScreenEffects = reinterpret_cast<decltype(originalDoPostScreenEffects)>(hookImpl.hook(WIN32_LINUX(44, 45), std::uintptr_t(&doPostScreenEffects)));
+        originalUpdateColorCorrectionWeights = reinterpret_cast<decltype(originalUpdateColorCorrectionWeights)>(hookImpl.hook(WIN32_LINUX(58, 61), std::uintptr_t(&updateColorCorrectionWeights)));
+    }
+
+    void uninstall() noexcept
+    {
+        hookImpl.uninstall(*reinterpret_cast<std::uintptr_t**>(clientMode));
+    }
+
+    [[nodiscard]] bool isInstalled() const noexcept
+    {
+        return hookImpl.isInstalled(*reinterpret_cast<std::uintptr_t**>(clientMode));
+    }
+
+    friend RefCountedHook;
+
     HookType hookImpl;
+    csgo::ClientMode* clientMode;
 
     bool (THISCALL_CONV* originalShouldDrawFog)(csgo::ClientMode* thisptr);
     void (THISCALL_CONV* originalOverrideView)(csgo::ClientMode* thisptr, csgo::ViewSetup* setup);
