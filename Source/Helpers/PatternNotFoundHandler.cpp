@@ -5,6 +5,7 @@
 #include <MemorySearch/BytePattern.h>
 #include "PatternNotFoundHandler.h"
 #include <Platform/Macros/IsPlatform.h>
+#include <Platform/SimpleMessageBox.h>
 
 #include <Utils/StringBuilder.h>
 
@@ -37,7 +38,5 @@ private:
 void PatternNotFoundHandler::operator()(BytePattern pattern) const
 {
     assert(false && "Pattern needs to be updated!");
-#if IS_WIN32()
-    MessageBoxA(nullptr, StringBuilderStorage<300>{}.builder().put("Failed to find pattern:\n", PatternToString{ pattern }).cstring(), "Osiris", MB_OK | MB_ICONWARNING);
-#endif
+    SimpleMessageBox{}.showWarning("Osiris", StringBuilderStorage<300>{}.builder().put("Failed to find pattern:\n", PatternToString{ pattern }).cstring());
 }

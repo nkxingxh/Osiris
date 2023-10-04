@@ -8,12 +8,15 @@
 
 #include <Platform/Macros/IsPlatform.h>
 
-#if IS_WIN32()
+#if IS_WIN32() || IS_WIN64()
 #include <Windows.h>
 #include <shellapi.h>
 #include <ShlObj.h>
+
+#include <Platform/Windows/UserDocumentsFolderPath.h>
 #elif IS_LINUX()
 #include <unistd.h>
+#include <Platform/Linux/UserHomeFolderPath.h>
 #endif
 
 #include "nlohmann/json.hpp"
@@ -70,14 +73,10 @@ int CALLBACK fontCallback(const LOGFONTW* lpelfe, const TEXTMETRICW*, DWORD, LPA
 [[nodiscard]] static std::filesystem::path buildConfigsFolderPath() noexcept
 {
     std::filesystem::path path;
-#if IS_WIN32()
-    if (PWSTR pathToDocuments; SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &pathToDocuments))) {
-        path = pathToDocuments;
-        CoTaskMemFree(pathToDocuments);
-    }
+#if IS_WIN32() || IS_WIN64()
+    path = UserDocumentsFolderPath{}.get();
 #else
-    if (const char* homeDir = getenv("HOME"))
-        path = homeDir;
+    path = UserHomeFolderPath{}.get();
 #endif
 
     path /= "Osiris";

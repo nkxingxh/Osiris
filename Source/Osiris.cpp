@@ -2,7 +2,8 @@
 
 #include "Platform/Macros/IsPlatform.h"
 
-#if IS_WIN32()
+#if IS_WIN32() || IS_WIN64()
+#include <bit>
 #include <clocale>
 #include <Windows.h>
 
@@ -10,6 +11,10 @@
 #include "Platform/Windows/Win.h"
 #include "Platform/Windows/WindowsPlatformApi.h"
 
+#endif
+
+#if IS_LINUX()
+#include <signal.h>
 #endif
 
 #include "GlobalContext.h"
@@ -21,7 +26,7 @@ namespace
 }
 
 #include "Endpoints.h"
-#include "MemoryAllocation/MemoryAllocator.h"
+#include "MemoryAllocation/MemoryAllocatorBase.h"
 
 template <typename... Args>
 void initializeGlobalContext(Args&&... args)
@@ -30,14 +35,14 @@ void initializeGlobalContext(Args&&... args)
     globalContext->enable();
 }
 
-std::byte* MemoryAllocator::allocate(std::size_t size) noexcept
+std::byte* MemoryAllocatorBase::allocate(std::size_t size) noexcept
 {
-    return static_cast<std::byte*>(std::malloc(size));
+    return globalContext->fixedAllocator.allocate(size);
 }
 
-void MemoryAllocator::deallocate(std::byte* memory, std::size_t) noexcept
+void MemoryAllocatorBase::deallocate(std::byte* memory, std::size_t size) noexcept
 {
-    std::free(memory);
+    globalContext->fixedAllocator.deallocate(memory, size);
 }
 
 #if IS_WIN32() || IS_WIN64()
@@ -58,11 +63,17 @@ BOOL APIENTRY DllEntryPoint(HMODULE moduleHandle, DWORD reason, LPVOID reserved)
 
 win::Peb* WindowsPlatformApi::getPeb() noexcept
 {
+    static_assert(IS_WIN32() || IS_WIN64());
 #if IS_WIN32()
-    return reinterpret_cast<win::Peb*>(__readfsdword(0x30));
+    return std::bit_cast<win::Peb*>(__readfsdword(0x30));
 #elif IS_WIN64()
-    return reinterpret_cast<win::Peb*>(__readgsqword(0x60));
+    return std::bit_cast<win::Peb*>(__readgsqword(0x60));
 #endif
+}
+
+void WindowsPlatformApi::debugBreak() noexcept
+{
+    __debugbreak();
 }
 
 #elif IS_LINUX()
@@ -115,6 +126,16 @@ void* LinuxPlatformApi::mmap(void* addr, size_t length, int prot, int flags, int
 int LinuxPlatformApi::munmap(void* addr, size_t length) noexcept
 {
     return ::munmap(addr, length);
+}
+
+void LinuxPlatformApi::debugBreak() noexcept
+{
+    raise(SIGTRAP);
+}
+
+char* LinuxPlatformApi::getenv(const char* name) noexcept
+{
+    return ::getenv(name);
 }
 
 #endif

@@ -111,6 +111,12 @@
     <Filter Include="MemoryAllocation">
       <UniqueIdentifier>{d969ab9e-3c43-4920-9b63-a03cb992bd03}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Verification">
+      <UniqueIdentifier>{632357e8-8179-49cd-9cd4-c724a0a406e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows\DLLs">
+      <UniqueIdentifier>{6d627371-1fe5-4a39-9bcd-ec33550ce53f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -673,9 +679,6 @@
     <ClInclude Include="Utils\FlagsBuilder.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Utils\TypeHint.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Interfaces\InterfaceFinder.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
@@ -1209,6 +1212,60 @@
     </ClInclude>
     <ClInclude Include="MemoryAllocation\MemoryAllocator.h">
       <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\FixedAllocator.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\FreeMemoryRegion.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\FreeMemoryRegionList.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\WindowsMessageBox.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\SimpleMessageBox.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\PlatformApi.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Verification\Verifier.h">
+      <Filter>Verification</Filter>
+    </ClInclude>
+    <ClInclude Include="Verification\VerifyMacros.h">
+      <Filter>Verification</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\CharUtils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\DLLs\CombaseDll.h">
+      <Filter>Platform\Windows\DLLs</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\DLLs\Shell32Dll.h">
+      <Filter>Platform\Windows\DLLs</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\CoTaskMemDeleter.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\UserDocumentsFolderPath.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\MemoryDeleter.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\UniquePtr.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\ConstString.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocation\MemoryAllocatorBase.h">
+      <Filter>MemoryAllocation</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\GenericFunctionPointer.h">
+      <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

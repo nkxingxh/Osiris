@@ -1,10 +1,8 @@
 #pragma once
 
-#include <Platform/Macros/IsPlatform.h>
+#include <string>
 
-#if IS_WIN32()
-#include <Windows.h>
-#endif
+#include <Platform/SimpleMessageBox.h>
 
 #include "InterfaceFinder.h"
 
@@ -19,9 +17,7 @@ struct InterfaceFinderWithLog {
         if (const auto foundInterface = finder(name))
             return foundInterface;
 
-#if IS_WIN32()
-        MessageBoxA(nullptr, ("Failed to find " + std::string{ name } + " interface!").c_str(), "Osiris", MB_OK | MB_ICONERROR);
-#endif
+        SimpleMessageBox{}.showError("Osiris", ("Failed to find " + std::string{ name } + " interface!").c_str());
         std::exit(EXIT_FAILURE);
     }
 

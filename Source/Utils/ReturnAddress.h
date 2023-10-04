@@ -1,5 +1,13 @@
 #pragma once
 
-#include <cstdint>
+struct ReturnAddress {
+    explicit ReturnAddress(const void* returnAddress) noexcept
+        : returnAddress{ returnAddress }
+    {
+    }
 
-enum class ReturnAddress : std::uintptr_t {};
+    bool operator==(const ReturnAddress&) const = default;
+
+private:
+    const void* returnAddress;
+};

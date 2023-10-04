@@ -20,6 +20,7 @@ struct MockLinuxPlatformApi {
     MOCK_METHOD(int, fstat, (int fd, struct stat* buf), (const noexcept));
     MOCK_METHOD(void*, mmap, (void* addr, size_t length, int prot, int flags, int fd, off_t offset), (const noexcept));
     MOCK_METHOD(int, munmap, (void* addr, size_t length), (const noexcept));
+    MOCK_METHOD(char*, getenv, (const char* name), (const noexcept));
 
     static inline testing::StrictMock<MockLinuxPlatformApi>* instance = nullptr;
 };
@@ -61,7 +62,7 @@ TEST_F(TestLinuxDynamicLibrary, GetFunctionAddressReturnsZeroIfOpeningFailed) {
     EXPECT_CALL(platformApi, dlsym(_, _)).Times(0);
 
     const auto dll = createSharedObject(dummyLibraryName);
-    EXPECT_EQ(dll.getFunctionAddress("functionA").get(), 0);
+    EXPECT_EQ(dll.getFunctionAddress("functionA").as<std::uintptr_t>(), 0);
 }
 
 TEST_F(TestLinuxDynamicLibrary, GetLinkMapReturnsNullIfOpeningFailed) {
@@ -191,4 +192,9 @@ void* LinuxPlatformApi::mmap(void* addr, size_t length, int prot, int flags, int
 int LinuxPlatformApi::munmap(void* addr, size_t length) noexcept
 {
     return MockLinuxPlatformApi::instance->munmap(addr, length);
+}
+
+char* LinuxPlatformApi::getenv(const char* name) noexcept
+{
+    return MockLinuxPlatformApi::instance->getenv(name);
 }
